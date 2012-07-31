@@ -148,8 +148,8 @@ struct composite_spd {
  * main configuration task, thus having universal memory access.
  */
 struct spd_location {
-	unsigned int lowest_addr;
-	unsigned int size;
+	unsigned long lowest_addr;
+	unsigned long size;
 };
 
 typedef int mmaps_t;
