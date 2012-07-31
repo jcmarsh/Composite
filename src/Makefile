@@ -8,7 +8,8 @@ comps:
 	$(info ************* Building Components *************)
 	$(info ***********************************************)
 	$(info )
-	$(MAKE) $(MAKEFLAGS) -C components
+	# $(MAKE) $(MAKEFLAGS) -C components
+	$(info Skipping!)
 kern: comps
 	$(info )
 	$(info ***********************************************)

@@ -2,9 +2,9 @@ include Makefile.src
 
 default:
 	$(MAKE) -C module
-	$(MAKE) -C net
-	$(MAKE) -C translator
-	$(MAKE) -C link_load
+#	$(MAKE) -C net
+#	$(MAKE) -C translator
+#	$(MAKE) -C link_load
 
 cp:
 	$(MAKE) -C module cp
