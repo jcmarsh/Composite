@@ -61,8 +61,8 @@ struct pt_regs {
 #define MAX_STATIC_CAP 1024
 
 #define PAGE_MASK    (~(PAGE_SIZE-1))
-#define PGD_SHIFT    22
-#define PGD_RANGE    (1<<PGD_SHIFT)
+#define PGD_SHIFT    39// 22 // 39 for x86_64 James
+#define PGD_RANGE    (unsigned long)((unsigned long)1<<PGD_SHIFT) // Added cast James
 #define PGD_SIZE     PGD_RANGE
 #define PGD_MASK     (~(PGD_RANGE-1))
 #define PGD_PER_PTBL 1024
@@ -79,12 +79,12 @@ struct pt_regs {
 #define CACHE_ALIGNED __attribute__ ((aligned (CACHE_LINE)))
 #define HALF_CACHE_ALIGNED __attribute__ ((aligned (CACHE_LINE/2)))
 #define PAGE_ALIGNED __attribute__ ((aligned(PAGE_SIZE)))
-#define WORD_SIZE 32
+#define WORD_SIZE 64 // 32 // Not for x86_64 James
 
 #define round_to_cacheline(x)    round_to_pow2(x, CACHE_LINE)
 #define round_up_to_cacheline(x) round_up_to_pow2(x, CACHE_LINE)
 
-#define SHARED_REGION_START (1<<30)  // 1 gig
+#define SHARED_REGION_START (unsigned long)(1<<30)  // 1 gig // Added cast James
 #define SHARED_REGION_SIZE PGD_RANGE
 #define SERVICE_START (SHARED_REGION_START+SHARED_REGION_SIZE)
 #define SERVICE_END   ((unsigned long)SHARED_REGION_START+(unsigned long)(1<<30))

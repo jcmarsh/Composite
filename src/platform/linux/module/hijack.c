@@ -1228,9 +1228,7 @@ __pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 
 	pte = pgtbl_lookup_address(pgtbl, addr);
 	if (!pte) return 0;
-	// FIXME: James PTE
-	// return pte->pte_low;
-	return NULL; // fix as well
+	return pte->pte;
 }
 
 /* returns the page table entry */
@@ -1261,8 +1259,7 @@ int pgtbl_add_entry(paddr_t pgtbl, unsigned long vaddr, unsigned long paddr)
 		return -1;
 	}
 	/*pte_val(*pte)*/
-	// FIXME: James PTE
-	// pte->pte_low = paddr | (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+	pte->pte = paddr | (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
 
 	return 0;
 }
@@ -1329,8 +1326,7 @@ paddr_t pgtbl_rem_ret(paddr_t pgtbl, vaddr_t va)
 		return 0;
 	}
 	val = (paddr_t)(pte_val(*pte) & PTE_MASK);
-	// FIXME: James PTE
-	//pte->pte_low = 0;
+	pte->pte = 0;
 
 	return val;
 }
@@ -1811,9 +1807,8 @@ void thd_publish_data_page(struct thread *thd, vaddr_t page)
 
 	//printk("cos: shared_region_pte is %p, page is %x.\n", shared_region_pte, page);
 	/* _PAGE_PRESENT is not set */
-	// FIXME: James PTE
-	// ((pte_t*)shared_region_page)[id].pte_low = (vaddr_t)va_to_pa((void*)page) |
-	//	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+	((pte_t*)shared_region_page)[id].pte = (vaddr_t)va_to_pa((void*)page) |
+		(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
 
 	return;
 }
@@ -1828,9 +1823,8 @@ void switch_thread_data_page(int old_thd, int new_thd)
 	 *
 	 * unmap the current thread map in the new thread
 	 */
-	// FIXME: James PTE
-	//((pte_t*)shared_region_page)[old_thd].pte_low &= ~_PAGE_PRESENT;
-	//((pte_t*)shared_region_page)[new_thd].pte_low |= _PAGE_PRESENT;
+	((pte_t*)shared_region_page)[old_thd].pte &= ~_PAGE_PRESENT;
+	((pte_t*)shared_region_page)[new_thd].pte |= _PAGE_PRESENT;
 
 	return;
 }
@@ -1935,9 +1929,8 @@ static int aed_open(struct inode *inode, struct file *file)
 	/* hook in the data page */
 	data_page = va_to_pa((void *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), 
 							   (unsigned long)shared_data_page));
-	// FIXME: James PTE
-	// shared_region_pte[0].pte_low = (unsigned long)(data_page) |
-	//	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+	shared_region_pte[0].pte = (unsigned long)(data_page) |
+		(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
 
 	/* hook up the actual virtual memory pages to the pte
 	 * protection mapping equivalent to PAGE_SHARED */
@@ -1967,7 +1960,7 @@ static int aed_open(struct inode *inode, struct file *file)
 	}
 	pgd->pgd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 
-	printk("cos: info region @ %d(%x)\n", 
+	printk("cos: info region @ %lu(%lx)\n",
 	       COS_INFO_REGION_ADDR, COS_INFO_REGION_ADDR);
 
 	if (open_checks()) return -EFAULT;
