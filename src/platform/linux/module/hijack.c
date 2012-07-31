@@ -36,15 +36,15 @@
 #include "aed_ioctl.h"
 #include "asym_exec_dom.h"
 
-#include "../../../kernel/include/spd.h"
-#include "../../../kernel/include/ipc.h"
-#include "../../../kernel/include/thread.h"
-#include "../../../kernel/include/measurement.h"
-#include "../../../kernel/include/mmap.h"
+//#include "../../../kernel/include/spd.h"
+//#include "../../../kernel/include/ipc.h"
+//#include "../../../kernel/include/thread.h"
+//#include "../../../kernel/include/measurement.h"
+//#include "../../../kernel/include/mmap.h"
 
-#include "./hw_ints.h"
+//#include "./hw_ints.h"
 
-#include "./kconfig_checks.h"
+//#include "./kconfig_checks.h"
 
 MODULE_LICENSE("GPL");
 #define MODULE_NAME "asymmetric_execution_domain_support"
@@ -1228,7 +1228,9 @@ __pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 
 	pte = pgtbl_lookup_address(pgtbl, addr);
 	if (!pte) return 0;
-	return pte->pte_low;
+	// FIXME: James PTE
+	// return pte->pte_low;
+	return NULL; // fix as well
 }
 
 /* returns the page table entry */
@@ -1258,7 +1260,9 @@ int pgtbl_add_entry(paddr_t pgtbl, unsigned long vaddr, unsigned long paddr)
 	if (!pte || pte_val(*pte) & _PAGE_PRESENT) {
 		return -1;
 	}
-	/*pte_val(*pte)*/pte->pte_low = paddr | (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+	/*pte_val(*pte)*/
+	// FIXME: James PTE
+	// pte->pte_low = paddr | (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
 
 	return 0;
 }
@@ -1325,7 +1329,8 @@ paddr_t pgtbl_rem_ret(paddr_t pgtbl, vaddr_t va)
 		return 0;
 	}
 	val = (paddr_t)(pte_val(*pte) & PTE_MASK);
-	pte->pte_low = 0;
+	// FIXME: James PTE
+	//pte->pte_low = 0;
 
 	return val;
 }
@@ -1806,8 +1811,9 @@ void thd_publish_data_page(struct thread *thd, vaddr_t page)
 
 	//printk("cos: shared_region_pte is %p, page is %x.\n", shared_region_pte, page);
 	/* _PAGE_PRESENT is not set */
-	((pte_t*)shared_region_page)[id].pte_low = (vaddr_t)va_to_pa((void*)page) |
-		(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+	// FIXME: James PTE
+	// ((pte_t*)shared_region_page)[id].pte_low = (vaddr_t)va_to_pa((void*)page) |
+	//	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
 
 	return;
 }
@@ -1822,8 +1828,9 @@ void switch_thread_data_page(int old_thd, int new_thd)
 	 *
 	 * unmap the current thread map in the new thread
 	 */
-	((pte_t*)shared_region_page)[old_thd].pte_low &= ~_PAGE_PRESENT;
-	((pte_t*)shared_region_page)[new_thd].pte_low |= _PAGE_PRESENT;
+	// FIXME: James PTE
+	//((pte_t*)shared_region_page)[old_thd].pte_low &= ~_PAGE_PRESENT;
+	//((pte_t*)shared_region_page)[new_thd].pte_low |= _PAGE_PRESENT;
 
 	return;
 }
@@ -1928,8 +1935,10 @@ static int aed_open(struct inode *inode, struct file *file)
 	/* hook in the data page */
 	data_page = va_to_pa((void *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), 
 							   (unsigned long)shared_data_page));
-	shared_region_pte[0].pte_low = (unsigned long)(data_page) |
-		(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+	// FIXME: James PTE
+	// shared_region_pte[0].pte_low = (unsigned long)(data_page) |
+	//	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+
 	/* hook up the actual virtual memory pages to the pte
 	 * protection mapping equivalent to PAGE_SHARED */
 /*	for (i = 0 ; i < MAX_NUM_THREADS+1 ; i++) { 
@@ -1965,8 +1974,10 @@ static int aed_open(struct inode *inode, struct file *file)
 	
 	thd_init();
 	spd_init();
-	ipc_init();
-	cos_init_memory();
+	// FIXME: James IPC.H
+	// ipc_init();
+	// FIXME: James MMAP.H
+	// cos_init_memory();
 
 	register_timers();
 	cos_meas_init();
@@ -2025,8 +2036,10 @@ static int aed_release(struct inode *inode, struct file *file)
 	thd_free_all();
  	thd_init();
 	spd_free_all();
-	ipc_init();
-	cos_shutdown_memory();
+	// FIXME: James IPC.H
+	// ipc_init();
+	// FIXME: James MMAP.H
+	// cos_shutdown_memory();
 	composite_thread = NULL;
 
 	cos_meas_report();
@@ -2164,11 +2177,12 @@ static int asym_exec_dom_init(void)
 		return -1;
 
 	//update_vmalloc_regions();
-	hw_int_init();
-	hw_int_override_sysenter(sysenter_interposition_entry);
-	hw_int_override_pagefault(page_fault_interposition);
-	hw_int_override_idt(0, div_fault_interposition, 0, 0);
-	hw_int_override_idt(0xe9, reg_save_interposition, 0, 3);
+	// FIXME: James HW_INTS.H
+	// hw_int_init();
+	// hw_int_override_sysenter(sysenter_interposition_entry);
+	// hw_int_override_pagefault(page_fault_interposition);
+	// hw_int_override_idt(0, div_fault_interposition, 0, 0);
+	// hw_int_override_idt(0xe9, reg_save_interposition, 0, 3);
 
 	BUG_ON(offsetof(struct thread, regs) != 8);
 
@@ -2180,7 +2194,8 @@ static int asym_exec_dom_init(void)
 
 static void asym_exec_dom_exit(void)
 {
-	hw_int_reset();
+	// FIXME: James HW_INTS.H
+	// hw_int_reset();
 	remove_proc_entry("aed", NULL);
 
 	return;
