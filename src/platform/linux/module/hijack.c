@@ -36,15 +36,15 @@
 #include "aed_ioctl.h"
 #include "asym_exec_dom.h"
 
-//#include "../../../kernel/include/spd.h"
-//#include "../../../kernel/include/ipc.h"
-//#include "../../../kernel/include/thread.h"
-//#include "../../../kernel/include/measurement.h"
-//#include "../../../kernel/include/mmap.h"
+#include "../../../kernel/include/spd.h"
+#include "../../../kernel/include/ipc.h"
+#include "../../../kernel/include/thread.h"
+#include "../../../kernel/include/measurement.h"
+#include "../../../kernel/include/mmap.h"
 
-//#include "./hw_ints.h"
+#include "./hw_ints.h"
 
-//#include "./kconfig_checks.h"
+#include "./kconfig_checks.h"
 
 MODULE_LICENSE("GPL");
 #define MODULE_NAME "asymmetric_execution_domain_support"
@@ -1968,9 +1968,9 @@ static int aed_open(struct inode *inode, struct file *file)
 	thd_init();
 	spd_init();
 	// FIXME: James IPC.H
-	// ipc_init();
+	ipc_init();
 	// FIXME: James MMAP.H
-	// cos_init_memory();
+	cos_init_memory();
 
 	register_timers();
 	cos_meas_init();
@@ -2030,9 +2030,9 @@ static int aed_release(struct inode *inode, struct file *file)
  	thd_init();
 	spd_free_all();
 	// FIXME: James IPC.H
-	// ipc_init();
+	ipc_init();
 	// FIXME: James MMAP.H
-	// cos_shutdown_memory();
+	cos_shutdown_memory();
 	composite_thread = NULL;
 
 	cos_meas_report();
@@ -2171,11 +2171,11 @@ static int asym_exec_dom_init(void)
 
 	//update_vmalloc_regions();
 	// FIXME: James HW_INTS.H
-	// hw_int_init();
-	// hw_int_override_sysenter(sysenter_interposition_entry);
-	// hw_int_override_pagefault(page_fault_interposition);
-	// hw_int_override_idt(0, div_fault_interposition, 0, 0);
-	// hw_int_override_idt(0xe9, reg_save_interposition, 0, 3);
+	hw_int_init();
+	hw_int_override_sysenter(sysenter_interposition_entry);
+	hw_int_override_pagefault(page_fault_interposition);
+	hw_int_override_idt(0, div_fault_interposition, 0, 0);
+	hw_int_override_idt(0xe9, reg_save_interposition, 0, 3);
 
 	BUG_ON(offsetof(struct thread, regs) != 8);
 
@@ -2188,7 +2188,7 @@ static int asym_exec_dom_init(void)
 static void asym_exec_dom_exit(void)
 {
 	// FIXME: James HW_INTS.H
-	// hw_int_reset();
+        hw_int_reset();
 	remove_proc_entry("aed", NULL);
 
 	return;
