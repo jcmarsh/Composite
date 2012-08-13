@@ -1,7 +1,7 @@
 include Makefile.src
 
 obj-m := cos.o
-cos-objs := hijack.o
+cos-objs := hijack.o ../../../kernel/chk_offsets.o
 
 default: module
 

@@ -9,7 +9,7 @@
 #define SFRAMESP 8
 #define SFRAMEIP 12
 
-/* user capability structure offsets */
+/* user capability structure offsets (cos_types.h usr_inv_cap)*/
 /* really 16, see below for use (mult index reg by 2) */
 #define UCAP_SZ 4 		/* # of longs */
 #define UCAP_SZ_STR "4"

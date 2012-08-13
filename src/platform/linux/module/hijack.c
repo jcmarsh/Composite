@@ -45,6 +45,7 @@
 #include "./hw_ints.h"
 
 #include "./kconfig_checks.h"
+#include "../../../kernel/chk_offsets.h"
 
 MODULE_LICENSE("GPL");
 #define MODULE_NAME "asymmetric_execution_domain_support"
@@ -1965,11 +1966,14 @@ static int aed_open(struct inode *inode, struct file *file)
 
 	if (open_checks()) return -EFAULT;
 	
+	// FIXME: jcm Check to see if offsets are correct
+	check_offsets();
+
 	thd_init();
 	spd_init();
-	// FIXME: James IPC.H
+	// FIXME: jcm IPC.H
 	ipc_init();
-	// FIXME: James MMAP.H
+	// FIXME: jcm MMAP.H
 	cos_init_memory();
 
 	register_timers();
@@ -2029,9 +2033,9 @@ static int aed_release(struct inode *inode, struct file *file)
 	thd_free_all();
  	thd_init();
 	spd_free_all();
-	// FIXME: James IPC.H
+	// FIXME: jcm IPC.H
 	ipc_init();
-	// FIXME: James MMAP.H
+	// FIXME: jcm MMAP.H
 	cos_shutdown_memory();
 	composite_thread = NULL;
 
@@ -2170,7 +2174,7 @@ static int asym_exec_dom_init(void)
 		return -1;
 
 	//update_vmalloc_regions();
-	// FIXME: James HW_INTS.H
+	// FIXME: jcm HW_INTS.H
 	hw_int_init();
 	hw_int_override_sysenter(sysenter_interposition_entry);
 	hw_int_override_pagefault(page_fault_interposition);
@@ -2187,7 +2191,7 @@ static int asym_exec_dom_init(void)
 
 static void asym_exec_dom_exit(void)
 {
-	// FIXME: James HW_INTS.H
+	// FIXME: jcm HW_INTS.H
         hw_int_reset();
 	remove_proc_entry("aed", NULL);
 
