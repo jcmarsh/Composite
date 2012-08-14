@@ -36,6 +36,21 @@ struct pt_regs {
         long sp;
         long ss;
 };
+/* New pt_regs? jcm
+long rax; // accumulator
+long rbx; // base index
+long rcx; // counter
+long rdx; // data
+long rsi; // source index
+long rdi; // destination index
+long rsp; // stack pointer, top of stack
+long rbp; // stack base pointer, current stack frame
+long r8; long r9; long r10; long r11; long r12; long r13; long r14; long r15; // general purpose
+long rflags; // flags!
+long rip; // instruction pointer
+long
+*/
+
 //struct pt_regs { int dummy[16]; };
 #endif
 #endif
@@ -61,11 +76,11 @@ struct pt_regs {
 #define MAX_STATIC_CAP 1024
 
 #define PAGE_MASK    (~(PAGE_SIZE-1))
-#define PGD_SHIFT    39// 22 // 39 for x86_64 James
-#define PGD_RANGE    (unsigned long)((unsigned long)1<<PGD_SHIFT) // Added cast James
+#define PGD_SHIFT    39// 22 // 39 for x86_64 jcm -- gap: probably 21 -- read "pgd_shift = size of each component's region
+#define PGD_RANGE    (unsigned long)((unsigned long)1<<PGD_SHIFT) // Added cast jcm
 #define PGD_SIZE     PGD_RANGE
 #define PGD_MASK     (~(PGD_RANGE-1))
-#define PGD_PER_PTBL 1024
+#define PGD_PER_PTBL 512 //gap -- # entries per level in the pgtbl (old:1024)
 
 #define round_to_pow2(x, pow2)    (((unsigned long)(x))&(~(pow2-1)))
 #define round_up_to_pow2(x, pow2) (round_to_pow2(((unsigned long)x)+pow2-1, pow2))
@@ -84,7 +99,7 @@ struct pt_regs {
 #define round_to_cacheline(x)    round_to_pow2(x, CACHE_LINE)
 #define round_up_to_cacheline(x) round_up_to_pow2(x, CACHE_LINE)
 
-#define SHARED_REGION_START (unsigned long)(1<<30)  // 1 gig // Added cast James
+#define SHARED_REGION_START (unsigned long)(1<<30)  // 1 gig // Added cast jcm
 #define SHARED_REGION_SIZE PGD_RANGE
 #define SERVICE_START (SHARED_REGION_START+SHARED_REGION_SIZE)
 #define SERVICE_END   ((unsigned long)SHARED_REGION_START+(unsigned long)(1<<30))
@@ -100,6 +115,6 @@ struct pt_regs {
 
 #include "../asm_ipc_defs.h"
 
-#define KERN_BASE_ADDR 0xc0000000 //CONFIG_PAGE_OFFSET
+#define KERN_BASE_ADDR 0xc0000000 //CONFIG_PAGE_OFFSET, gap: worry about this later when we do the page fault handling path
 
 #endif

@@ -486,8 +486,8 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 	    || uaddr + sizeof(struct usr_inv_cap) * spd->cap_range > lowest_addr + size
 	    || !user_struct_fits_on_page((unsigned long)spd->user_vaddr_cap_tbl, 
 					 sizeof(struct usr_inv_cap) * spd->cap_range)) {
-		printk("cos: user capability table @ %x does not fit into spd, or onto a single page\n", 
-		       (unsigned int)spd->user_vaddr_cap_tbl);
+		printk("cos: user capability table @ %zx does not fit into spd, or onto a single page\n",
+		       (unsigned long)spd->user_vaddr_cap_tbl);
 		return -1;
 	}
 
@@ -502,8 +502,8 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 	 */
 	kaddr = pgtbl_vaddr_to_kaddr(pg_tbl, (unsigned long)spd->user_vaddr_cap_tbl);
 	if (0 == kaddr) {
-		printk("cos: could not translate the user-cap address, %x, into a kernel vaddr for spd %d.\n",
-		       (unsigned int)spd->user_vaddr_cap_tbl, spd_get_index(spd));
+		printk("cos: could not translate the user-cap address, %zx, into a kernel vaddr for spd %d.\n",
+		       (unsigned long)spd->user_vaddr_cap_tbl, spd_get_index(spd));
 		return -1;
 	}
 
@@ -684,8 +684,8 @@ unsigned int spd_add_static_cap_extended(struct spd *owner_spd, struct spd *trus
 	struct usr_cap_stubs *stubs;
 
 	if (!owner_spd || !trusted_spd || owner_spd->user_vaddr_cap_tbl == NULL) {
-		printd("cos: Invalid cap request args (%p, %p, %x).\n",
-		       owner_spd, trusted_spd, (unsigned int)owner_spd->user_vaddr_cap_tbl);
+		printd("cos: Invalid cap request args (%p, %p, %zx).\n",
+		       owner_spd, trusted_spd, (unsigned long)owner_spd->user_vaddr_cap_tbl);
 		return 0;
 	}
 

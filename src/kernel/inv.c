@@ -26,6 +26,7 @@
  * through a variable to find their address, so that lookup and
  * manipulation are quick.
  */
+// FIXME: 1024 should probably 512 for x86_64 jcm
 unsigned int shared_region_page[1024] PAGE_ALIGNED;
 unsigned int shared_data_page[1024] PAGE_ALIGNED;
 
@@ -96,6 +97,7 @@ static void print_stack(struct thread *thd)
 	}
 }
 
+// FIXME: Will obviously need to be changed for x86_64 jcm
 void print_regs(struct pt_regs *regs)
 {
 	printk("cos: EAX:%x\tEBX:%x\tECX:%x\n"
@@ -1633,7 +1635,7 @@ void cos_net_register(struct cos_net_callbacks *cn_cb)
 {
 	assert(cn_cb->get_packet && cn_cb->create_brand);
 
-	printk("cos: Registering networking callbacks @ %x\n", (unsigned int)cn_cb);
+	printk("cos: Registering networking callbacks @ %lx\n", (unsigned long)cn_cb);
 	cos_net_fns = cn_cb;
 }
 
@@ -1841,7 +1843,7 @@ cos_syscall_buff_mgmt_cont(int spd_id, void *addr, unsigned int thd_id, unsigned
 				printk("cos: buff mgmt -- buffer address  %p does not fit onto page\n", user_gi->data);
 				return -1;
 			}
-			if ((void*)((unsigned int)(user_gi->data) & PAGE_MASK) == 
+			if ((void*)((unsigned long)(user_gi->data) & PAGE_MASK) ==
 			    get_shared_data()->argument_region) {
 				/* If the pointer is into the argument
 				 * region, we now that the memory is
@@ -1870,7 +1872,7 @@ cos_syscall_buff_mgmt_cont(int spd_id, void *addr, unsigned int thd_id, unsigned
 	case COS_BM_XMIT_REGION:
 	{
 		if (len != sizeof(struct cos_net_xmit_headers)) {
-			printk("cos: buff mgmt -- xmit header region of length %d, expected %d.\n",
+			printk("cos: buff mgmt -- xmit header region of length %d, expected %zd.\n",
 			       len, sizeof(struct cos_net_xmit_headers));
 			return -1;
 		}
@@ -2166,7 +2168,7 @@ static inline void update_thd_evt_state(struct thread *t, int flags, unsigned lo
 				n = p = se->cpu_consumption;
 				n += elapsed;
 				 /* prevent overflow */
-				if (unlikely(n < p)) se->cpu_consumption = ~0UL;
+				if (unlikely(n < p)) se->cpu_consumption = ~0U;
 				else                 se->cpu_consumption = n;
 			}
 
@@ -3440,12 +3442,12 @@ cos_syscall_spd_cntl(int id, int op_spdid, long arg1, long arg2)
 			ret = -1;
 			break;
 		}
-		if ((unsigned int)spd->user_vaddr_cap_tbl < spd->location[0].lowest_addr || 
-		    (unsigned int)spd->user_vaddr_cap_tbl + sizeof(struct usr_inv_cap) * spd->cap_range > 
+		if ((unsigned long)spd->user_vaddr_cap_tbl < spd->location[0].lowest_addr ||
+		    (unsigned long)spd->user_vaddr_cap_tbl + sizeof(struct usr_inv_cap) * spd->cap_range >
 		    spd->location[0].lowest_addr + spd->location[0].size || 
-		    !user_struct_fits_on_page((unsigned int)spd->user_vaddr_cap_tbl, sizeof(struct usr_inv_cap) * spd->cap_range)) {
-			printk("cos: user capability table @ %x does not fit into spd, or onto a single page\n", 
-			       (unsigned int)spd->user_vaddr_cap_tbl);
+		    !user_struct_fits_on_page((unsigned long)spd->user_vaddr_cap_tbl, sizeof(struct usr_inv_cap) * spd->cap_range)) {
+			printk("cos: user capability table @ %zx does not fit into spd, or onto a single page\n",
+			       (unsigned long)spd->user_vaddr_cap_tbl);
 			ret = -1;
 			break;
 		}

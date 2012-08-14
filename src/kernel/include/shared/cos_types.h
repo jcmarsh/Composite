@@ -21,14 +21,16 @@
 
 #ifndef COS_BASE_TYPES
 #define COS_BASE_TYPES
+// FIXME: these may need to be changed - jcm
 typedef unsigned char      u8_t;
 typedef unsigned short int u16_t;
 typedef unsigned int       u32_t;
-typedef unsigned long long u64_t;
+typedef unsigned long long u64_t; // just the "long long"s? - jcm
 typedef signed char      s8_t;
 typedef signed short int s16_t;
 typedef signed int       s32_t;
-typedef signed long long s64_t;
+typedef signed long long s64_t;  // Actually, long long is just 64 bits, so it should be fine as is. - jcm
+// So the question is, should any of the structs that use these be changed? - jcm
 #endif
 
 struct shared_user_data {
@@ -68,7 +70,7 @@ struct cos_sched_events {
 			u32_t vals;
 		} c;
 	} nfu;
-	u32_t cpu_consumption;
+        u32_t cpu_consumption;
 } __attribute__((packed));
 
 /* Primitive for scheduler synchronization.  These must reside in the
