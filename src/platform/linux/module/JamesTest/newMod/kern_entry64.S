@@ -26,7 +26,6 @@
 
 #include "calling64.h"
 
-
 .data
 .align 16
 
@@ -34,22 +33,7 @@
 ALIGN # What does THIS do?
 ENTRY(sysenter_interposition_entry)
 	// Let's get stacked!
-	swapgs
-	movq 	%rsp, PER_CPU_VAR(composite_old_rsp)
-	movq	PER_CPU_VAR(kernel_stack), %rsp
-
-	SAVE_ALL
-	movq	$0xdeadbeef, %rax
-	pushq	%rax
-	popq	%rbx
-	cmpq	%rax, %rbx
-	jne	test_return
-	call	test_function
-
-test_return:
-	RESTORE_ALL
-	movq	PER_CPU_VAR(composite_old_rsp), %rsp
-	swapgs
+	COS_ENTRY
 
 	/*
 	 * Composite invocations are indicated byt the contents of %rax:
@@ -69,15 +53,29 @@ test_return:
 	//ja composite_ret_ipc /* component return */
 
 	cmpq $((1<<COS_SYSCALL_OFFSET)-1), %rax /* composite syscall */
-	//ja cos_syscall_thunk
+	ja cos_syscall_thunk
 
 	/* hijack_syscall_monitor? Don't worry for now */
 
 normal_syscall:
 	/* I'm not sure that I need to mess with the TSS */
 	/* Will investigate later */
+	COS_EXIT
 	jmp	*(cos_default_sysenter_addr)
 
 cos_syscall_thunk:
 	/* cos syscalls may call linux functions... not supported yet */
-	//jmp composite_make_syscall
+	movq	%rsp, %rdi
+	call	test_print_reg
+
+	jmp composite_make_syscall
+
+.globl cos_exit
+cos_exit:
+	call test_function1
+	COS_EXIT
+	movq	%rsp, %rdi
+	COS_ENTRY
+	call	test_print_reg
+	COS_EXIT
+	sysretq

@@ -407,7 +407,7 @@ static inline void *cos_memset(void * s, char c , int count)
 #define COS_MAX_ARG_SZ COS_ARGREG_USABLE_SZ
 #define COS_IN_ARGREG(addr) \
 	((((unsigned long)(addr)) & ~(COS_ARGREG_SZ-1)) == \
-	 (unsigned int)cos_arg_region_base())
+	 (unsigned long)cos_arg_region_base()) // jcm changed to long for cos_arg_region_base cast
 
 /* a should be power of 2 */
 #define ALIGN(v, a) ((v+(a-1))&~(a-1))

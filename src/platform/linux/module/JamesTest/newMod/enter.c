@@ -1,6 +1,7 @@
 #include <linux/module.h> // for all modules
 #include <linux/kernel.h> // needed for KERN_INFO
 #include <asm/percpu.h>
+
 /*
  * As far as I can tell, the descriptor structure has become
  * more complicated with x86_64, not less. There are now two types.
@@ -32,15 +33,63 @@ struct cos_desc_struct_gate *default_idt;
 
 DEFINE_PER_CPU(unsigned long, composite_old_rsp);
 
-int count = 0;
-void test_function(void) {
+int print_count0 = 0;
+void test_print_reg(unsigned long a) {
   bool print = false;
-  if (count == 0) {
+  if (print_count0 < 10) {
     print = true;
   }
-  count++;
+  print_count0++;
   if (print) {
-    printk(KERN_INFO "BASE: Reached Test Function!\n");
+    printk(KERN_INFO "We've got something: %lx\n", a);
+  }
+}
+
+int count0 = 0;
+void test_function0(void) {
+  bool print = false;
+  if (count0 == 0) {
+    print = true;
+  }
+  count0++;
+  if (print) {
+    printk(KERN_INFO "BASE: Reached Test Function Zero!\n");
+  }
+}
+
+int count1 = 0;
+void test_function1(void) {
+  bool print = false;
+  if (count1 == 0) {
+    print = true;
+  }
+  count1++;
+  if (print) {
+    printk(KERN_INFO "BASE: Reached Test Function One!\n");
+  }
+}
+
+int count2 = 0;
+void test_function2(void) {
+  bool print = false;
+  if (count2 == 0) {
+    print = true;
+  }
+  count2++;
+  if (print) {
+    printk(KERN_INFO "BASE: Reached Test Function Two!\n");
+  }
+}
+
+int count3 = 0;
+void test_function3(void) {
+  bool print = false;
+  if (count3 == 0) {
+    print = true;
+  }
+  count3++;
+  if (print) {
+    printk(KERN_INFO "BASE: Reached Test Function Three!\n");
   }
 }
 

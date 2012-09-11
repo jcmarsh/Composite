@@ -19,7 +19,8 @@
 //#define RET_TO_USER_NOSEG \
 //	pushq $0; \
 //	pushq $0; \
-//	sysret	; sysreturn
+//	sti;
+//	sysret
 
 //#define RET_TO_USER RET_TO_USER_NOSEG
 // I can't figure out the correct thing to do with %fs in x86_64
@@ -40,8 +41,10 @@
 
 #include <asm/asm-offsets.h>
 #include <asm/segment.h> /* __USER_(DS|CS) */
-#include "../../../kernel/include/asm_ipc_defs.h"
+#include <asm/percpu.h>
+#include "../../../../../kernel/include/asm_ipc_defs.h"
 
+#include "calling64.h"
 .text
 
 //kernel_ipc_syscall:
@@ -353,18 +356,18 @@
 //upcall_err:
 //	ret
 
-	; 	pushl $0
-; 	pushl %esp
-; 	pushl %ebx /* spd_id to upcall to */
-; 	pushl %edx /* this spd_id */
-; 	call cos_syscall_upcall_cont
-; 	addl $12, %esp
+//; 	pushl $0
+//; 	pushl %esp
+//; 	pushl %ebx /* spd_id to upcall to */
+//; 	pushl %edx /* this spd_id */
+//; 	call cos_syscall_upcall_cont
+//; 	addl $12, %esp
 
-; 	popl %ebx
-; 	movl %ebx, (COS_SYSCALL_EDX)(%esp)
-; 	/* eax remains as the thread id */
+//; 	popl %ebx
+//; 	movl %ebx, (COS_SYSCALL_EDX)(%esp)
+//; 	/* eax remains as the thread id */
 
-; 	ret
+//; 	ret
 
 
 /*
@@ -378,42 +381,46 @@
  * ebp:	ret esp
  */
 .globl composite_make_syscall
-.align 16
+.align 16 // worry about aligns later
 composite_make_syscall:
-	pushl %ebp /* user-sp */
-	pushl %ecx /* user-ip */
+	call test_function0
+
+	jmp cos_exit
+
+//	pushl %ebp /* user-sp */
+//	pushl %ecx /* user-ip */
 
 	/* arguments -- changing layout here requires changing COS_SYSCALL_E(C|D)X */
-	pushl %edi
-	pushl %esi
-	pushl %ebx
-	pushl %edx
-	shr $COS_SYSCALL_OFFSET, %eax /* impossible for value to be greater than the max allowed here because of filtering in kern_entry.S */
-	call *cos_syscall_tbl(,%eax,4)
-	addl $16, %esp /* esi, edi, and ebx not trashed because of cdecl conventions, and edx's value doesn't really matter here */
+//	pushl %edi
+//	pushl %esi
+//	pushl %ebx
+//	pushl %edx
+//	shr $COS_SYSCALL_OFFSET, %eax /* impossible for value to be greater than the max allowed here because of filtering in kern_entry.S */
+//	call *cos_syscall_tbl(,%eax,4)
+//	addl $16, %esp /* esi, edi, and ebx not trashed because of cdecl conventions, and edx's value doesn't really matter here */
 
-	popl %edx /* user-ip from above */
-	popl %ecx /* and the sp */
+//	popl %edx /* user-ip from above */
+//	popl %ecx /* and the sp */
 
-	RET_TO_USER
+//	RET_TO_USER
 
-.align 16
-composite_call_err:
-	addl $8, %esp /* thread might be useful later, i.e. for termination */
-	movl $-1, %eax
-	popl %ecx
+//.align 16
+//composite_call_err:
+//	addl $8, %esp /* thread might be useful later, i.e. for termination */
+//	movl $-1, %eax
+//	popl %ecx
 	/* perhaps more appropriate to trap to exception handler */
-	popl %edx
-	popl %ebp
-	addl $4, %esp
+//	popl %edx
+//	popl %ebp
+//	addl $4, %esp
 
-	RET_TO_USER
+//	RET_TO_USER
 
 /* global so that can see it in error reports if we crash */
-.globl composite_ret_err
-.align 16
-composite_ret_err:
+//.globl composite_ret_err
+//.align 16
+//composite_ret_err:
 	/* should invoke fault handler, but for now, kill our thread
 	by causing error (remember that pop just returned 0 in eax) */
 	/*	sti*/
-	ERROR_OUT
+//	ERROR_OUT
