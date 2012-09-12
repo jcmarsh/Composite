@@ -77,7 +77,7 @@ void test_function2(void) {
   }
   count2++;
   if (print) {
-    printk(KERN_INFO "BASE: Reached Test Function Two!\n");
+    printk(KERN_INFO "BASE: Reached Test Function Two! Call IPC\n");
   }
 }
 
@@ -89,7 +89,7 @@ void test_function3(void) {
   }
   count3++;
   if (print) {
-    printk(KERN_INFO "BASE: Reached Test Function Three!\n");
+    printk(KERN_INFO "BASE: Reached Test Function Three! Return IPC\n");
   }
 }
 

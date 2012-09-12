@@ -180,7 +180,7 @@
 //	movl %ecx, PT_EIP(%eax)
 
 	/* save volatile registers, as defined by cdecl (including ebx above) */
-//	movl %esi, PT_ESI(%eax)
+//	/kernel/include/asm_ipc_defs.h  movl %esi, PT_ESI(%eax)
 //	movl %edi, PT_EDI(%eax)
 //	movl %ebp, PT_EBP(%eax)
 
@@ -379,29 +379,35 @@
  * edi:	third arg
  * ecx:	ret ip
  * ebp:	ret esp
+ *
+ * rax: syscall offset
+ * rdi: current declared spd id
+ * rsi: first arg
+ * rdx: second arg
+ * rcx:	third arg
+ * r8:	ret ip
+ * r9:	ret esp
+ *
  */
 .globl composite_make_syscall
 .align 16 // worry about aligns later
 composite_make_syscall:
-	call test_function0
-
-	jmp cos_exit
-
-//	pushl %ebp /* user-sp */
-//	pushl %ecx /* user-ip */
+//	pushq %r9 /* user-sp */
+//	pushq %r8 /* user-ip */
 
 	/* arguments -- changing layout here requires changing COS_SYSCALL_E(C|D)X */
-//	pushl %edi
-//	pushl %esi
-//	pushl %ebx
-//	pushl %edx
-//	shr $COS_SYSCALL_OFFSET, %eax /* impossible for value to be greater than the max allowed here because of filtering in kern_entry.S */
-//	call *cos_syscall_tbl(,%eax,4)
-//	addl $16, %esp /* esi, edi, and ebx not trashed because of cdecl conventions, and edx's value doesn't really matter here */
+//	pushq %rcx
+//	pushq %rdx
+//	pushq %rsi
+//	pushq %rdi
+	shr $COS_SYSCALL_OFFSET, %rax /* impossible for value to be greater than the max allowed here because of filtering in kern_entry.S */
+	call *cos_syscall_tbl(,%rax,8)
+//	addq $32, %rsp /* esi, edi, and ebx not trashed because of cdecl conventions, and edx's value doesn't really matter here */
 
-//	popl %edx /* user-ip from above */
-//	popl %ecx /* and the sp */
+//	popq %rdi /* user-ip from above */
+//	popq %r8 /* and the sp */
 
+	jmp cos_exit
 //	RET_TO_USER
 
 //.align 16

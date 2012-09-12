@@ -49,8 +49,8 @@ ENTRY(sysenter_interposition_entry)
 	 */
 
 	cmpq $((1<<COS_CAPABILITY_OFFSET)-1), %rax /* 2^20-1 shift for capability invocations */
-	//ja composite_call_ipc /* component invocation */
-	//ja composite_ret_ipc /* component return */
+	ja composite_call_ipc /* component invocation */
+	ja composite_ret_ipc /* component return */
 
 	cmpq $((1<<COS_SYSCALL_OFFSET)-1), %rax /* composite syscall */
 	ja cos_syscall_thunk
@@ -65,17 +65,20 @@ normal_syscall:
 
 cos_syscall_thunk:
 	/* cos syscalls may call linux functions... not supported yet */
-	movq	%rsp, %rdi
-	call	test_print_reg
-
 	jmp composite_make_syscall
+
+composite_call_ipc:
+	/* not yet implemented */
+	call test_function2	
+	jmp cos_exit
+
+composite_ret_ipc:
+	/* not yet implemented */
+	call test_function3
+	jmp cos_exit	
 
 .globl cos_exit
 cos_exit:
-	call test_function1
-	COS_EXIT
-	movq	%rsp, %rdi
-	COS_ENTRY
-	call	test_print_reg
 	COS_EXIT
 	sysretq
+
