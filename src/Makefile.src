@@ -21,7 +21,7 @@ NET_DIR=$(TOP_DIR)/platform/linux/net/
 
 # tools
 MAKE=make
-CC=gcc
+CC=gcc -D X86_64
 AR=ar
 LD=ld
 AS=$(CC)

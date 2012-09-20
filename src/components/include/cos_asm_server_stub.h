@@ -20,6 +20,54 @@
  * we know that when the %ebp is 0, we are at the end of the stack.
  */
 
+#ifdef X86_64
+/* Not yet implemented */
+#define cos_asm_server_fn_stub(name, fn)	//	\
+  //.globl name##_inv ;				\
+  //.type  name##_inv, @function ;		\
+  //.align 16 ;					\
+  //name##_inv:					\
+//        COS_ASM_GET_STACK	  \
+//	pushl %ebp;		  \
+//	xor %ebp, %ebp;		  \
+//      pushl %edi;	          \
+//      pushl %esi;	          \
+//      pushl %ebx;	          \
+//      call fn ; 		  \
+//      addl $16, %esp;           \
+  //                              \
+//      movl %eax, %ecx;          \
+//      movl $RET_CAP, %eax;	  \
+//      COS_ASM_RET_STACK         \
+  //                              \
+//      sysenter;                 \
+//      COS_ASM_REQUEST_STACK
+
+#define cos_asm_server_stub(name) cos_asm_server_fn_stub(name, name)
+
+#define cos_asm_server_fn_stub_spdid(name, fn)	//	\
+  //.globl name##_inv ;					\
+  //.type  name##_inv, @function ;			\
+  //.align 16 ;						\
+  //name##_inv:						\
+  //    COS_ASM_GET_STACK				\
+  //	pushl %ebp;					\
+  //	xor %ebp, %ebp;					\
+  //    pushl %edi;					\
+  //    pushl %esi;					\
+  //    pushl %ecx;					\
+  //    call fn ;					\
+  //    addl $16, %esp;					\
+  //							\
+  //    movl %eax, %ecx;                \
+  //    movl $RET_CAP, %eax;	        \
+  //    COS_ASM_RET_STACK		\
+  //                                    \
+  //    sysenter;                       \
+  //    COS_ASM_REQUEST_STACK
+
+#define cos_asm_server_stub_spdid(name) cos_asm_server_fn_stub_spdid(name, name)
+#else /* x86_32 implementation */
 #define cos_asm_server_fn_stub(name, fn)	\
 .globl name##_inv ;               \
 .type  name##_inv, @function ;	  \
@@ -65,5 +113,5 @@ name##_inv:                             \
         COS_ASM_REQUEST_STACK
 
 #define cos_asm_server_stub_spdid(name) cos_asm_server_fn_stub_spdid(name, name)
-
+#endif /* X86_64 */
 #endif /* COS_ASM_SERVER_STUB_H */

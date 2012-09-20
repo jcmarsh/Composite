@@ -57,6 +57,76 @@ extern struct cos_component_information cos_comp_info;
  * perceived system call overhead and application progress.
  */
 
+#ifdef X86_64
+#define cos_syscall_asm \
+  __asm__ __volatile__("":::"rcx","r11"); \
+  __asm__ __volatile__("syscall\n\t":"=a" (ret)
+#define cos_syscall_clobber \
+  :"memory", "cc");		    \
+  return ret;
+
+#define cos_syscall_0(num, rtype, name)              \
+static inline rtype cos_##name(void)                 \
+{                                                    \
+  rtype ret;					     \
+  cos_syscall_asm							\
+    : "a" (num<<COS_SYSCALL_OFFSET), "D" (cos_comp_info.cos_this_spd_id) \
+    cos_syscall_clobber							\
+}
+
+// Not Tested
+#define cos_syscall_1(num, rtype, name, type0, name0) \
+static inline rtype cos_##name(type0 name0)          \
+{                                                    \
+  rtype ret;					     \
+  cos_syscall_asm							\
+    : "a" (num<<COS_SYSCALL_OFFSET), "D" (cos_comp_info.cos_this_spd_id), "S" (name0) \
+    cos_syscall_clobber							\
+}
+
+#define cos_syscall_2(num, rtype, name, type0, name0, type1, name1)\
+static inline rtype cos_##name(type0 name0, type1 name1) \
+{                                                    \
+  rtype ret;					     \
+  cos_syscall_asm							\
+  : "a" (num<<COS_SYSCALL_OFFSET), "D" (cos_comp_info.cos_this_spd_id), "S" (name0), "d" (name1)       	\
+  cos_syscall_clobber							\
+}
+
+// Not yet Tested
+#define cos_syscall_3(num, rtype, name, type0, name0, type1, name1, type2, name2) \
+static inline rtype cos_##name(type0 name0, type1 name1, type2 name2) \
+{                                                                     \
+  rtype ret;                                                          \
+  cos_syscall_asm                                                     \
+  : "a" (num<<COS_SYSCALL_OFFSET), "D" (cos_comp_info.cos_this_spd_id), "S" (name0), "d" (name1), "c" (name2)  \
+  cos_syscall_clobber                                                 \
+}
+
+// Only tested null and print so far.
+cos_syscall_0(1,  int, stats);
+cos_syscall_2(2,  int, print, char*, str, int, len); // Tested
+cos_syscall_3(3,  int, create_thread, int, a, int, b, int, c);
+cos_syscall_2(4,  int, __switch_thread, int, thd_id, int, flags);
+cos_syscall_1(5,  int, brand_wait, int, thdid);
+cos_syscall_3(6,  int, __brand_upcall, int, thd_id_flags, long, arg1, long, arg2);
+cos_syscall_3(7,  int, __brand_cntl, int, ops, u32_t, bid_tid, spdid_t, spdid);
+cos_syscall_1(8,  int, upcall, int, spd_id);
+cos_syscall_3(9,  int, sched_cntl, int, operation, int, thd_id, long, option);
+cos_syscall_3(10, int, mpd_cntl, int, operation, spdid_t, composite_spd, spdid_t, composite_dest);
+cos_syscall_3(11, int, __mmap_cntl, long, op_flags_dspd, vaddr_t, daddr, unsigned long, mem_id);
+cos_syscall_3(12, int, brand_wire, long, thd_id, long, option, long, data);
+cos_syscall_3(13, long, __cap_cntl, int, option, u32_t, arg1, long, arg2);
+cos_syscall_3(14, int, __buff_mgmt, void *, addr, int, thd_id, int, len_option);
+cos_syscall_3(15, int, __thd_cntl, int, op_thdid, long, arg1, long, arg2);
+cos_syscall_0(16, int, idle);
+cos_syscall_3(17, int, __spd_cntl, int, op_spdid, long, arg1, long, arg2);
+cos_syscall_3(18, int, __vas_cntl, int, op_spdid, long, arg1, long, arg2);
+cos_syscall_3(19, int, __trans_cntl, unsigned long, op_ch, unsigned long, addr, int, off);
+cos_syscall_3(20, int, __pfn_cntl, unsigned long, op_spd, unsigned long, mem_id, int, extent);
+cos_syscall_0(31,  int, null); // Tested
+
+#else /* x86_32 implementation */
 /* 
  * The ABI for syscalls regarding registers is that any registers you
  * want saved, must be saved by you.  This is why the extensive
@@ -141,6 +211,7 @@ cos_syscall_3(18, int, __vas_cntl, int, op_spdid, long, arg1, long, arg2);
 cos_syscall_3(19, int, __trans_cntl, unsigned long, op_ch, unsigned long, addr, int, off);
 cos_syscall_3(20, int, __pfn_cntl, unsigned long, op_spd, unsigned long, mem_id, int, extent);
 cos_syscall_0(31,  int, null);
+#endif /* X86_64 */
 
 static inline int cos_mmap_cntl(short int op, short int flags, short int dest_spd, 
 				vaddr_t dest_addr, unsigned long mem_id) {
@@ -298,6 +369,54 @@ static inline char *cos_init_args(void)
 
 #define COS_EXTERN_FN(fn) __cos_extern_##fn
 
+
+#ifdef X86_64
+/* not implemented */
+static inline long cos_cmpxchg(volatile void *memory, long anticipated, long result)
+{
+  return -1;
+}
+
+static inline int
+cos_cas(unsigned long *target, unsigned long cmp, unsigned long updated)
+{
+  return -1;
+}
+
+/* A uni-processor variant with less overhead but that doesn't
+ * guarantee atomicity across cores. */
+static inline int
+cos_cas_up(unsigned long *target, unsigned long cmp, unsigned long updated)
+{
+	return -1;
+}
+
+static inline void *cos_get_prealloc_page(void)
+{
+  return (void *)0;
+}
+
+/* allocate and release a page in the vas */
+extern void *cos_get_vas_page(void);
+extern void cos_release_vas_page(void *p);
+
+/* only if the heap pointer is pre_addr, set it to post_addr */
+static inline void cos_set_heap_ptr_conditional(void *pre_addr, void *post_addr)
+{
+	cos_cmpxchg(&cos_comp_info.cos_heap_ptr, (long)pre_addr, (long)post_addr);
+}
+
+/* from linux source in string.h */
+static inline void *cos_memcpy(void * to, const void * from, int n)
+{
+  return (void *)0;
+}
+
+static inline void *cos_memset(void * s, char c , int count)
+{
+  return (void *)0;
+}
+#else /* x86_32 implementation */
 static inline long cos_cmpxchg(volatile void *memory, long anticipated, long result)
 {
 	long ret;
@@ -395,6 +514,7 @@ static inline void *cos_memset(void * s, char c , int count)
 		:"memory");
 	return s;
 }
+#endif /* X86_64 */
 
 /* compiler branch prediction hints */
 #define likely(x)       __builtin_expect(!!(x), 1)

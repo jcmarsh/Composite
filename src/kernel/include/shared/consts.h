@@ -17,6 +17,36 @@
 #ifdef __KERNEL__
 #include <linux/thread_info.h> /* for PAGE_SIZE */
 #else 
+#ifdef X86_64
+struct pt_regs { /* ptrace.h in linux source */
+  unsigned long r15;
+  unsigned long r14;
+  unsigned long r13;
+  unsigned long r12;
+  unsigned long bp;
+  unsigned long bx;
+  /* arguments: non interrupts/non tracing syscalls only save upto here */
+  unsigned long r11;
+  unsigned long r10;
+  unsigned long r9;
+  unsigned long r8;
+  unsigned long ax;
+  unsigned long cx;
+  unsigned long dx;
+  unsigned long si;
+  unsigned long di;
+  unsigned long orig_ax;
+  /* end of arguments */
+  /* cpu exception frame or undefined */
+  unsigned long ip;
+  unsigned long cs;
+  unsigned long eflags;
+  unsigned long sp;
+  unsigned long ss;
+  /* top of stack page */
+};
+
+#else
 struct pt_regs {
         long bx;
         long cx;
@@ -36,20 +66,7 @@ struct pt_regs {
         long sp;
         long ss;
 };
-/* New pt_regs? jcm
-long rax; // accumulator
-long rbx; // base index
-long rcx; // counter
-long rdx; // data
-long rsi; // source index
-long rdi; // destination index
-long rsp; // stack pointer, top of stack
-long rbp; // stack base pointer, current stack frame
-long r8; long r9; long r10; long r11; long r12; long r13; long r14; long r15; // general purpose
-long rflags; // flags!
-long rip; // instruction pointer
-long
-*/
+#endif /* X86_64 */
 
 //struct pt_regs { int dummy[16]; };
 #endif

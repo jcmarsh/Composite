@@ -13,68 +13,17 @@
 #include "asym_exec_dom.h"
 #include "../../../kernel/include/asm_ipc_defs.h"
 
+#ifdef X86_64
+#include "calling64.h"
+#define AX %rax
+#define CMP cmpq
+#else
+#include "calling32.h"
+#define AX %eax
+#define CMP cmpl
+#endif /* X86_64 */
+
 #define ASM_PAGE_MASK (~(4096-1))
-	
-/* from entry.S */	
-EBX		= 0x00
-ECX		= 0x04
-EDX		= 0x08
-ESI		= 0x0C
-EDI		= 0x10
-EBP		= 0x14
-EAX		= 0x18
-DS		= 0x1C
-ES		= 0x20
-FS              = 0x24
-GS              = 0x28
-ORIG_EAX	= 0x2C
-EIP		= 0x30
-CS		= 0x34
-EFLAGS		= 0x38
-OLDESP		= 0x3C
-OLDSS		= 0x40
-
-CF_MASK		= 0x00000001
-TF_MASK		= 0x00000100
-IF_MASK		= 0x00000200
-DF_MASK		= 0x00000400 
-NT_MASK		= 0x00004000
-VM_MASK		= 0x00020000
-
-#define SAVE_ALL    \
-	cld;        \
-	pushl $0 ;  \
-	pushl %fs;  \
-	pushl %es;  \
-	pushl %ds;  \
-	pushl %eax; \
-	pushl %ebp; \
-	pushl %edi; \
-	pushl %esi; \
-	pushl %edx; \
-	pushl %ecx; \
-	pushl %ebx; \
-	movl $(__USER_DS), %edx; \
-	movl %edx, %ds; \
-	movl %edx, %es; \
-	movl $(__KERNEL_PERCPU), %edx; \
-	movl %edx, %fs
-	
-#define RESTORE_INT_REGS \
- 	popl %ebx;	\
-	popl %ecx;	\
-	popl %edx;	\
-	popl %esi;	\
-	popl %edi;	\
-	popl %ebp;	\
-	popl %eax
-
-#define RESTORE_REGS	\
-	RESTORE_INT_REGS; \
-	popl %ds;	\
-	popl %es;	\
-	popl %fs;       \
-	addl $4, %esp
 
 /* 
  * This is all information that is needed within this file, and
@@ -93,7 +42,7 @@ VM_MASK		= 0x00020000
 .text
 ALIGN
 ENTRY(sysenter_interposition_entry)
-	movl TSS_sysenter_sp0(%esp),%esp
+	COS_ENTRY
 
 	/*
 	 * Composite invocations are indicated by the contents of %eax:
@@ -107,13 +56,73 @@ ENTRY(sysenter_interposition_entry)
 	 * cap_inv:	The capability to invoke
 	 * sc:	 Make a composite OS system-call
 	 */
-	cmpl $((1<<COS_CAPABILITY_OFFSET)-1), %eax /* 2^20-1 shift for capability invocations */
+	/*
+	 * Composite invocations are indicated byt the contents of %rax:
+	 * +--...---+-------------+----+--...
+	 * | unused |   cap_inv   | sc | normal OS (linux) syscalls
+	 * +--...---+-------------+----+--...
+	 * 64       32            |    COS_SYSCALL_OFFSET
+	 *                        COS_CAPABILITY_OFFSET
+	 *
+	 * Where each character represents a bit.
+	 * cap_inv:	The capability to invoke
+	 * sc:	Make a composite OS system-call
+	 */
+
+
+	CMP $((1<<COS_CAPABILITY_OFFSET)-1), AX /* 2^20-1 shift for capability invocations */
 	ja composite_call_ipc /* component invocation */
 	je composite_ret_ipc  /* component return */
 
-	cmpl $((1<<COS_SYSCALL_OFFSET)-1), %eax /* composite syscall */
+	CMP $((1<<COS_SYSCALL_OFFSET)-1), AX /* composite syscall */
 	ja cos_syscall_thunk
 
+#ifdef X86_64
+normal_syscall:
+	/* I'm not sure that I need to mess with the TSS */
+	/* Will investigate later */
+	COS_EXIT
+	jmp	*(cos_default_sysenter_addr)
+
+cos_syscall_thunk:
+	/* cos syscalls may call linux functions... not supported yet */
+	jmp composite_make_syscall
+
+composite_call_ipc:
+	/* not yet implemented */
+	call test_function2
+	jmp cos_exit
+
+composite_ret_ipc:
+	/* not yet implemented */
+	call test_function3
+	jmp cos_exit
+
+.globl cos_exit
+cos_exit:
+	COS_EXIT
+	sysretq
+
+/* All of these are not implemented in x86_64 */
+cos_page_fault_page_tramp:
+.globl cos_default_page_fault_handler_tramp
+cos_default_page_fault_handler_tramp:
+.long 0
+.globl cos_interpose_page_fault_handler_tramp
+cos_interpose_page_fault_handler_tramp:
+.long 0
+.globl page_fault_interposition_tramp
+.align 16
+page_fault_interposition_tramp:
+.globl cos_post_interpose_deref_addr_tramp
+cos_post_interpose_deref_addr_tramp: /* for the previous address */
+1:
+.globl cos_post_default_deref_addr_tramp
+cos_post_default_deref_addr_tramp:   /* for the previous address */
+	jmp cos_exit
+
+#else /* X86_32 Implementation begins here! */
+	asdfjsffiuiuiuiu
 	SAVE_ALL
 	pushl %eax
 	call hijack_syscall_monitor
@@ -234,3 +243,4 @@ cos_post_interpose_deref_addr_tramp: /* for the previous address */
 .globl cos_post_default_deref_addr_tramp
 cos_post_default_deref_addr_tramp:   /* for the previous address */
 	.align 4096
+#endif /* X86_64 */

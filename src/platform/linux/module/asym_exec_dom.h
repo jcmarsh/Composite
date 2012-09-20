@@ -2,6 +2,7 @@
 //#define ASYM_EXEC_DOM_H
 
 /* This is all deadweight now */
+// Only used in hijack.c - jcm
 
 #define HIJACK_SWITCH_TO_GUEST_ID 6666
 #define TIF_VIRTUAL_SYSCALL     10      /* gabep1@cs.bu.edu: virtual process making a syscall */

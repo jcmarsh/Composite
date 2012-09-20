@@ -172,19 +172,19 @@ extern unsigned int *pgtbl_module_to_vaddr(unsigned long addr);
 void 
 relocate_page_fault_handler(void *handler)
 {
-	unsigned int **cos_default_deref_addr, **cos_interpose_deref_addr, *pf_realloc;
+	unsigned long **cos_default_deref_addr, **cos_interpose_deref_addr, *pf_realloc;
 	/* Symbols associated with the page fault handling code */
 	extern void *cos_page_fault_page_tramp, *page_fault_interposition_tramp, 
 		*cos_interpose_page_fault_handler_tramp, *cos_default_page_fault_handler_tramp;
 	/* Symbols within the page fault handling code (literally in the code) */
-	extern unsigned int *cos_post_default_deref_addr_tramp, *cos_post_interpose_deref_addr_tramp;
+	extern unsigned long *cos_post_default_deref_addr_tramp, *cos_post_interpose_deref_addr_tramp;
 
-	int default_ptr_off, interpose_ptr_off, interpose_off;
-	unsigned int p = (unsigned int)&cos_page_fault_page_tramp;
+	unsigned long default_ptr_off, interpose_ptr_off, interpose_off;
+	unsigned long p = (unsigned long)&cos_page_fault_page_tramp;
 
-	default_ptr_off   = (unsigned int)&cos_default_page_fault_handler_tramp - p;
-	interpose_ptr_off = (unsigned int)&cos_interpose_page_fault_handler_tramp - p;
-	interpose_off     = (unsigned int)&page_fault_interposition_tramp - p;
+	default_ptr_off   = (unsigned long)&cos_default_page_fault_handler_tramp - p;
+	interpose_ptr_off = (unsigned long)&cos_interpose_page_fault_handler_tramp - p;
+	interpose_off     = (unsigned long)&page_fault_interposition_tramp - p;
 
 	/* Find the address in the kernel's main memory, not module space */
 	pf_realloc = pgtbl_module_to_vaddr((unsigned long)&cos_page_fault_page_tramp);

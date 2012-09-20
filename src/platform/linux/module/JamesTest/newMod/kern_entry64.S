@@ -50,7 +50,7 @@ ENTRY(sysenter_interposition_entry)
 
 	cmpq $((1<<COS_CAPABILITY_OFFSET)-1), %rax /* 2^20-1 shift for capability invocations */
 	ja composite_call_ipc /* component invocation */
-	ja composite_ret_ipc /* component return */
+	je composite_ret_ipc /* component return */
 
 	cmpq $((1<<COS_SYSCALL_OFFSET)-1), %rax /* composite syscall */
 	ja cos_syscall_thunk

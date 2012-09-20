@@ -1,3 +1,22 @@
+#ifdef X86_64
+/* All un-implemented */
+#define RET_CAP  ((1<<20)-1)
+#define IPRETURN 4
+#define CAPNUM   12
+
+.globl SS_ipc_client_marshal_args
+.type  SS_ipc_client_marshal_args, @function
+.align 16
+SS_ipc_client_marshal_args:
+.align 8
+	jmp SS_ipc_client_ret_fatal_err
+.globl SS_ipc_client_ret_unmarshal
+.align 8
+SS_ipc_client_ret_unmarshal:
+	ret
+SS_ipc_client_ret_fatal_err:
+	ret
+#else /* x86_32 implementation */
 #define RET_CAP  ((1<<20)-1)
 #define IPRETURN 4
 #define CAPNUM   12
@@ -50,3 +69,4 @@ SS_ipc_client_ret_fatal_err:
 	
 	movl $-0xDEAD, %eax
 	ret
+#endif /* X86_64 */

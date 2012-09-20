@@ -61,7 +61,9 @@
  *
  * x86_64 - just change to x86_64 equivalent. Might have to change for linux syscalls
  * rax: which capability
- * rcx - this is used in syscall, so should be something else?
+ * r8 : ip
+ * r9 : sp
+ * rsi,rdx,rcx,rdi: arguments
  */
 //.globl composite_call_ipc
 //.align 32 // Not going to worry about this for now.

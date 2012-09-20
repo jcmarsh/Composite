@@ -30,6 +30,13 @@
 unsigned int shared_region_page[1024] PAGE_ALIGNED;
 unsigned int shared_data_page[1024] PAGE_ALIGNED;
 
+extern struct invocation_cap invocation_capabilities[MAX_STATIC_CAP];
+
+struct inv_ret_struct {
+	int thd_id;
+	int spd_id;
+};
+
 static inline struct shared_user_data *get_shared_data(void)
 {
 	return (struct shared_user_data*)shared_data_page;
@@ -97,25 +104,37 @@ static void print_stack(struct thread *thd)
 	}
 }
 
-// FIXME: Will obviously need to be changed for x86_64 jcm
+#ifdef X86_64
 void print_regs(struct pt_regs *regs)
 {
-	printk("cos: EAX:%x\tEBX:%x\tECX:%x\n"
-	       "cos: EDX:%x\tESI:%x\tEDI:%x\n"
-	       "cos: EIP:%x\tESP:%x\tEBP:%x\n",
-	       (unsigned int)regs->ax, (unsigned int)regs->bx, (unsigned int)regs->cx,
-	       (unsigned int)regs->dx, (unsigned int)regs->si, (unsigned int)regs->di,
-	       (unsigned int)regs->ip, (unsigned int)regs->sp, (unsigned int)regs->bp);
-
-	return;
+  printk("cos: RAX:%lx\tRBX:%lx\tRCX:%lx\n"
+	 "cos: RDX:%lx\tRSI:%lx\tRDI:%lx\n"
+	 "cos: RIP:%lx\tRSP:%lx\tRBP:%lx\n"
+	 "cos: R8:%lx\tR9:%lx\tR10:%lx\n"
+	 "cos: R11:%lx\tR12:%lx\tR13:%lx\n"
+	 "cos: R14:%lx\tR15:%lx\n",
+	 regs->ax, regs->bx, regs->cx,
+	 regs->dx, regs->si, regs->di,
+	 regs->ip, regs->sp, regs->bp,
+	 regs->r8, regs->r9, regs->r10,
+	 regs->r11, regs->r12, regs->r13,
+	 regs->r14, regs->r15);
+  return;
 }
+#else
+void print_regs(struct pt_regs *regs)
+{
+  printk("cos: EAX:%x\tEBX:%x\tECX:%x\n"
+	 "cos: EDX:%x\tESI:%x\tEDI:%x\n"
+	 "cos: EIP:%x\tESP:%x\tEBP:%x\n",
+	 (unsigned int)regs->ax, (unsigned int)regs->bx, (unsigned int)regs->cx,
+	 (unsigned int)regs->dx, (unsigned int)regs->si, (unsigned int)regs->di,
+	 (unsigned int)regs->ip, (unsigned int)regs->sp, (unsigned int)regs->bp);
 
-extern struct invocation_cap invocation_capabilities[MAX_STATIC_CAP];
+  return;
+}
+#endif /* X86_64 */
 
-struct inv_ret_struct {
-	int thd_id;
-	int spd_id;
-};
 /* 
  * FIXME: 1) should probably return the static capability to allow
  * isolation level isolation access from caller, 2) all return 0
@@ -444,8 +463,8 @@ void copy_sched_info(struct thread *new, struct thread *old)
  * to the fn and stack to be used anyway, which can be assigned at
  * user-level.
  */
-COS_SYSCALL int 
-cos_syscall_create_thread(int spd_id, int a, int b, int c)
+COS_SYSCALL long
+cos_syscall_create_thread(long spd_id, long a, long b, long c)
 {
 	struct thread *thd, *curr;
 	struct spd *curr_spd;
@@ -461,7 +480,7 @@ cos_syscall_create_thread(int spd_id, int a, int b, int c)
 	curr = thd_get_current();
 	curr_spd = thd_validate_get_current_spd(curr, spd_id);
 	if (NULL == curr_spd) {
-		printk("cos: component claimed in spd %d, but not\n", spd_id);
+		printk("cos: component claimed in spd %ld, but not\n", spd_id);
 		return -1;
 	}
 
@@ -486,21 +505,31 @@ cos_syscall_create_thread(int spd_id, int a, int b, int c)
 	/* FIXME: do this lazily */
 	spd_mpd_ipc_take((struct composite_spd *)curr_spd->composite_spd);
 
+#ifdef X86_64
+	thd->regs.r8 = COS_UPCALL_CREATE;
+	thd->regs.di = curr_spd->upcall_entry;
+	thd->regs.si = a;
+	thd->regs.cx = b; // Is this wrong? See comment below. - jcm
+	thd->regs.dx = c;
+	thd->regs.ax = thd_get_id(thd);
+#else
 	thd->regs.cx = COS_UPCALL_CREATE;
 	thd->regs.dx = curr_spd->upcall_entry;
 	thd->regs.bx = a;
-	thd->regs.di = b;	
+	thd->regs.di = b; // ipc.S says that si should be the 2nd arg, and di the third. Is this wrong? - jcm
 	thd->regs.si = c;
 	thd->regs.ax = thd_get_id(thd);
+#endif /* X86_64 */
 
 	thd->flags |= THD_STATE_CYC_CNT;
+
 	initialize_sched_info(thd, curr_spd);
 	
 	return thd_get_id(thd);
 }
 
-COS_SYSCALL int 
-cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
+COS_SYSCALL long
+cos_syscall_thd_cntl(long spd_id, long op_thdid, long arg1, long arg2)
 {
 	struct thread *thd, *curr;
 	struct spd *curr_spd;
@@ -519,7 +548,7 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 	curr = thd_get_current();
 	curr_spd = thd_validate_get_current_spd(curr, spd_id);
 	if (NULL == curr_spd) {
-		printk("cos: component claimed in spd %d, but not\n", spd_id);
+		printk("cos: component claimed in spd %ld, but not\n", spd_id);
 		return -1;
 	}
 	
@@ -625,7 +654,7 @@ cos_syscall_thd_cntl(int spd_id, int op_thdid, long arg1, long arg2)
 		return thd->flags;
 	}
 	default:
-		printk("cos: undefined operation %d for thread %d from scheduler %d.\n",
+		printk("cos: undefined operation %d for thread %d from scheduler %ld.\n",
 		       op, thdid, spd_id);
 		return -1;
 	}
@@ -838,7 +867,7 @@ switch_thread_update_flags(struct cos_sched_data_area *da, unsigned short int *f
  * registers.  see ipc.S cos_syscall_switch_thread.
  */
 COS_SYSCALL struct pt_regs *
-cos_syscall_switch_thread_cont(int spd_id, unsigned short int rthd_id, 
+cos_syscall_switch_thread_cont(long spd_id, unsigned short int rthd_id,
 			       unsigned short int rflags, long *preempt)
 {
 	struct thread *thd, *curr;
@@ -1483,7 +1512,7 @@ static inline struct thread* verify_brand_thd(unsigned short int thd_id)
 	return brand_thd;
 }
 
-COS_SYSCALL int 
+COS_SYSCALL long
 cos_syscall_brand_cntl(int spd_id, int op, u32_t bid_tid, spdid_t dest)
 {
 	u16_t bid, tid, retid;
