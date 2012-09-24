@@ -85,6 +85,16 @@ void *cos_default_sysenter_addr;
 void
 hw_int_init(void)
 {
+#ifdef X86_64
+  /* I think some of this can be generalized, but most isn't even implemented yet. */
+  //  unsigned int mask = 0; // TODO: Do I need to use a mask for adding addr_low? -jcm
+  unsigned int addr_low, addr_high;
+
+  rdmsr(MSR_LSTAR, addr_low, addr_high);
+  cos_default_sysenter_addr = (void *) ((unsigned long) addr_high);
+  cos_default_sysenter_addr = (void *) ((unsigned long) cos_default_sysenter_addr << 32);
+  cos_default_sysenter_addr += addr_low;
+#else /* x86_32 implementation */
 	int se_addr, trash, i;
 
 	/* This will initialize the entire structure */
@@ -123,22 +133,39 @@ hw_int_init(void)
 	/* save the sysenter instruction address */
 	rdmsr(MSR_IA32_SYSENTER_EIP, se_addr, trash);
 	cos_default_sysenter_addr = (void*)se_addr;
+#endif /* X86_64 */
 }
 
-/* reset hardware entry points  */
+#ifdef X86_64
 void
-hw_int_reset(void)
+hw_int_override_sysenter(void *handler)
 {
-	memcpy((void*)default_idt, saved_idt, default_idt_desc.idt_limit);
-	wrmsr(MSR_IA32_SYSENTER_EIP, (int)cos_default_sysenter_addr, 0);
+  unsigned int addr_low, addr_high, mask = 0;
+  mask = ~mask;
+  addr_low = (unsigned int) ((unsigned long) handler & mask);
+  addr_high = (unsigned int) ((unsigned long) handler >> 32);
+  wrmsr(MSR_LSTAR, addr_low, addr_high);
 }
-
+#else /* x86_32 implementation */
 void
 hw_int_override_sysenter(void *handler)
 {
 	wrmsr(MSR_IA32_SYSENTER_EIP, (int)handler, 0);
 	printk("Overriding sysenter handler (%p) with %p\n", 
 	       cos_default_sysenter_addr, handler);
+}
+#endif /* X86_64 */
+
+/* reset hardware entry points  */
+void
+hw_int_reset(void)
+{
+  hw_int_override_sysenter(cos_default_sysenter_addr);
+#ifdef X86_64
+
+#else
+	memcpy((void*)default_idt, saved_idt, default_idt_desc.idt_limit);
+#endif /* X86_64 */
 }
 
 extern unsigned int *pgtbl_module_to_vaddr(unsigned long addr);

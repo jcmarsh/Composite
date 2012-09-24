@@ -106,7 +106,76 @@ unsigned long trusted_mem_size;
 #define MAX_ALLOC_MM 64
 struct mm_struct *guest_mms[MAX_ALLOC_MM]; 
 
+DEFINE_PER_CPU(unsigned long, composite_old_rsp);
 DEFINE_PER_CPU(unsigned long, x86_tss) = { 0 };
+
+// James' ugly debugging code.
+
+/* 
+ * THIS FUNCTION IS HORRIBLE.
+ * Prints whatever is in %rdi.
+ */
+int print_count0 = 0;
+void test_print_reg(unsigned long a) {
+  bool print = false;
+  if (print_count0 < 10) {
+    print = true;
+  }
+  print_count0++;
+  if (print) {
+    printk(KERN_INFO "We've got something: %lx\n", a);
+  }
+}
+
+int count0 = 0;
+void test_function0(void) {
+  bool print = false;
+  if (count0 == 0) {
+    print = true;
+  }
+  count0++;
+  if (print) {
+    printk(KERN_INFO "BASE: Reached Test Function Zero!\n");
+  }
+}
+
+int count1 = 0;
+void test_function1(void) {
+  bool print = false;
+  if (count1 == 0) {
+    print = true;
+  }
+  count1++;
+  if (print) {
+    printk(KERN_INFO "BASE: Reached Test Function One!\n");
+  }
+}
+
+int count2 = 0;
+void test_function2(void) {
+  bool print = false;
+  if (count2 == 0) {
+    print = true;
+  }
+  count2++;
+  if (print) {
+    printk(KERN_INFO "BASE: Reached Test Function Two! Call IPC\n");
+  }
+}
+
+int count3 = 0;
+void test_function3(void) {
+  bool print = false;
+  if (count3 == 0) {
+    print = true;
+  }
+  count3++;
+  if (print) {
+    printk(KERN_INFO "BASE: Reached Test Function Three! Return IPC\n");
+  }
+}
+// End James' ugly debugging code.
+
 
 /* This function gets the TSS pointer from Linux. */
 /* We read it from Linux only once. After that, use the */
@@ -2167,6 +2236,11 @@ static int make_proc_aed(void)
 static int asym_exec_dom_init(void)
 {
 	printk("cos: Installing the hijack module.\n");
+
+#ifdef X86_64
+	hw_int_init();
+	hw_int_override_sysenter(sysenter_interposition_entry);
+#else /* x86_32 implementation */
 	/* pt_regs in this linux version has changed... */
 	BUG_ON(sizeof(struct pt_regs) != (17*sizeof(long)));
 
@@ -2185,16 +2259,19 @@ static int asym_exec_dom_init(void)
 
 	init_guest_mm_vect();
 	trusted_mm = NULL;
-
+#endif /* X86_64 */
 	return 0;
 }
 
 static void asym_exec_dom_exit(void)
 {
-	// FIXME: jcm HW_INTS.H
+#ifdef X86_64
+  hw_int_reset();
+  // will likely have to add in the remove_proc_entry call, at which point we can get rid of this ifdef
+#else
         hw_int_reset();
 	remove_proc_entry("aed", NULL);
-
+#endif /* X86_64 */
 	return;
 }
 

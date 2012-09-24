@@ -82,3 +82,19 @@
 #define RESTORE_ALL \
 	RESTORE_REST; \
 	RESTORE_ARGS
+
+
+#define COS_ENTRY	\
+	swapgs;	\
+	movq 	%rsp, PER_CPU_VAR(composite_old_rsp); \
+	movq	PER_CPU_VAR(kernel_stack), %rsp; \
+	pushq	%rcx
+
+#define COS_EXIT	\
+	popq	%rcx;				      \
+	movq	PER_CPU_VAR(composite_old_rsp), %rsp; \
+	swapgs
+
+#define ERROR_OUT \
+  movq $0, %rax; \
+  movq (%rax), %rax

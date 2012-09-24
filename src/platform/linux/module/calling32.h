@@ -65,3 +65,8 @@ VM_MASK		= 0x00020000
 
 #define COS_ENTRY \
 	movl TSS_sysenter_sp0(%esp),%esp
+
+  /* null ptr deref */
+#define ERROR_OUT \
+  movl $0, %eax; \
+  movl (%eax), %eax

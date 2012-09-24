@@ -104,6 +104,7 @@ cos_exit:
 	sysretq
 
 /* All of these are not implemented in x86_64 */
+.globl cos_page_fault_page_tramp
 cos_page_fault_page_tramp:
 .globl cos_default_page_fault_handler_tramp
 cos_default_page_fault_handler_tramp:
@@ -114,6 +115,8 @@ cos_interpose_page_fault_handler_tramp:
 .globl page_fault_interposition_tramp
 .align 16
 page_fault_interposition_tramp:
+.globl page_fault_interposition
+page_fault_interposition:	
 .globl cos_post_interpose_deref_addr_tramp
 cos_post_interpose_deref_addr_tramp: /* for the previous address */
 1:

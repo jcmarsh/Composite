@@ -330,7 +330,14 @@ fault_ipc_invoke(struct thread *thd, vaddr_t fault_addr, int flags, struct pt_re
 
 /********** Composite system calls **********/
 
-COS_SYSCALL int 
+COS_SYSCALL long
+cos_syscall_null(int spdid)
+{
+  printk("NULL SYSCALL! spd id: %x\n", spdid);
+  return 0;
+}
+
+COS_SYSCALL long
 cos_syscall_void(int spdid)
 {
 	printk("cos: error - %d made void system call from %d\n", thd_get_id(thd_get_current()), spdid);
@@ -3259,10 +3266,10 @@ fault_update_mpd_pgtbl(struct thread *thd, struct pt_regs *regs, vaddr_t fault_a
 	return 1;
 }
 
-COS_SYSCALL int 
+COS_SYSCALL long
 cos_syscall_print(int spdid, char *str, int len)
 {
-	static char last = '\n';
+  //static char last = '\n';
 	/*
 	 * FIXME: use linux functions to copy the string into local
 	 * storage to avoid faults.  ...This won't work with cos
@@ -3270,16 +3277,26 @@ cos_syscall_print(int spdid, char *str, int len)
 	 * output system.  This is low prio as the string should be
 	 * passed in the arg region.  Perhaps we should just check
 	 * that.
+	 *
 	 */
-	
-	str[len] = '\0';
-	if ('\n' == last)
-//		printk("cos,%d: %s", thd_get_id(thd_get_current()), str);
-		printk("%s", str);
-	else 
-		printk("%s", str);
-	last = str[len-1];
-	return 0;
+
+  /* 
+   * This code crashes, probably due to the trying to write
+   * to the component's memory. Should be fixed eventually, as 
+   * stated in note above. -jcm
+   *
+   *	str[len] = '\0';
+   *	if ('\n' == last)
+   *	//	printk("cos,%d: %s", thd_get_id(thd_get_current()), str);
+   *		printk("%s", str);
+   *	else 
+   *		printk("%s", str);
+   *	last = str[len-1];
+   */
+
+  printk("%s", str);
+
+  return 0;
 }
 
 COS_SYSCALL long 
@@ -3586,5 +3603,5 @@ void *cos_syscall_tbl[32] = {
 	(void*)cos_syscall_void,
 	(void*)cos_syscall_void,
 	(void*)cos_syscall_void,
-	(void*)cos_syscall_void
+	(void*)cos_syscall_null
 };

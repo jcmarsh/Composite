@@ -7,6 +7,123 @@
  * Initial Author: Gabriel Parmer, gabep1@cs.bu.edu, 2007
  */
 
+#include <asm/asm-offsets.h>
+#include <asm/segment.h> /* __USER_(DS|CS) */
+#include "../../../kernel/include/asm_ipc_defs.h"
+
+	
+#ifdef X86_64
+#include "calling64.h"
+.text
+
+/* NOTHING IS IMPLEMENTED YET! Except syscall. */
+kernel_ipc_syscall:
+	ERROR_OUT
+	
+.globl composite_call_ipc
+.align 32
+composite_call_ipc:
+	ERROR_OUT
+		
+.globl composite_ret_ipc
+.align 16
+composite_ret_ipc:
+	ERROR_OUT
+
+ipc_ret_slowpath:
+	ERROR_OUT
+		
+/* global so that can see it in error reports if we crash */
+.globl ipc_ret_err 
+.align 16
+ipc_ret_err:
+	ERROR_OUT
+
+.globl cos_syscall_brand_upcall
+.align 16
+cos_syscall_brand_upcall:
+	ERROR_OUT
+
+.globl cos_syscall_brand_wait
+.align 16
+cos_syscall_brand_wait:
+	ERROR_OUT
+	
+.globl cos_syscall_switch_thread
+.align 16
+cos_syscall_switch_thread:
+	ERROR_OUT
+
+.align 4
+ret_from_preemption_getregs:
+	ERROR_OUT
+	
+ret_from_preemption:
+	ERROR_OUT
+	
+.align 4
+.globl cos_syscall_buff_mgmt
+cos_syscall_buff_mgmt:
+	ERROR_OUT
+	
+cos_syscall_interrupted:
+	ERROR_OUT
+
+.globl cos_syscall_idle
+.align 16
+cos_syscall_idle:
+	ERROR_OUT
+	
+.globl cos_syscall_upcall
+.align 16
+cos_syscall_upcall:
+	ERROR_OUT
+	
+/*
+ * Register Layout (from cos_component.h):
+ * rax: syscall offset
+ * rdi: current declared spd id
+ * rsi: first arg
+ * rdx: second arg
+ * rcx:	third arg
+ * r8:	ret ip
+ * r9:	ret esp
+ *
+ */
+.globl composite_make_syscall
+.align 16 // worry about aligns later
+composite_make_syscall:
+	pushq %r9 /* user-sp */
+	pushq %r8 /* user-ip */
+	/* arguments -- changing layout here requires changing COS_SYSCALL_E(C|D)X */
+	pushq %rcx
+	pushq %rdx
+	pushq %rsi
+	pushq %rdi
+	shr $COS_SYSCALL_OFFSET, %rax /* impossible for value to be greater than the max allowed here because of filtering in kern_entry.S */
+	call *cos_syscall_tbl(,%rax,8)
+
+	addq $32, %rsp /* esi, edi, and ebx not trashed because of cdecl conventions, and edx's value doesn't really matter here */
+
+	popq %rdi /* user-ip from above */
+	popq %r8 /* and the sp */
+
+	jmp cos_exit
+//	RET_TO_USER
+
+.align 16
+composite_call_err:
+	ERROR_OUT
+
+/* global so that can see it in error reports if we crash */
+.globl composite_ret_err
+.align 16
+composite_ret_err:
+	/* should invoke fault handler, but for now, kill our thread
+	by causing error (remember that pop just returned 0 in eax) */
+	ERROR_OUT
+	
+#else /* x86_32 implementation */
 /* push a known value onto the stack, so that we can tell, if we get
    an interrupt after the sti, that we are in a composite IPC
    call. See comment in hijack.c:get_user_regs.  Essentially, if we 
@@ -26,16 +143,8 @@
 	popl %edx		;\
 	RET_TO_USER_NOSEG
 
-/* null ptr deref */
-#define ERROR_OUT \
-	movl $0, %eax ; \
-	movl (%eax), %eax
-
 #define THD_REGS 8 /* offsetof(struct thread, regs) */
 		
-#include <asm/asm-offsets.h>
-#include <asm/segment.h> /* __USER_(DS|CS) */
-#include "../../../kernel/include/asm_ipc_defs.h"
 
 .text
 
@@ -408,3 +517,4 @@ composite_ret_err:
 	by causing error (remember that pop just returned 0 in eax) */
 	/*	sti*/
 	ERROR_OUT
+#endif /* X86_64 */
