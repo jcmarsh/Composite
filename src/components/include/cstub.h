@@ -1,6 +1,65 @@
 #ifndef CSTUB_H
 #define CSTUB_H
 
+#ifdef X86_64
+// I got rid of the error checking code here; will always return 0 - jcm
+#define CSTUB_ASM_PRE(name) \
+	__asm__ __volatile__( \
+		"pushq %%rbp\n\t" \
+	        "pushq %%rcx\n\t" \
+	        "pushq %%r11\n\t" \
+		"syscall\n\t" \
+	        "popq %%r11\n\t" \
+	        "popq %%rcx\n\t" \
+		"popq %%rbp\n\t" \
+		"movq $0, %%rcx\n\t" \
+		: "=a" (ret), "=c" (fault)
+
+#define CSTUB_PRE(type, name) \
+{					\
+        long fault = 0; \
+	type ret;	\
+                        \
+	/* \
+	 * cap#    -> rax \
+	 * sp      -> rbp \
+	 * 1st arg -> rsi \
+	 * 2nd arg -> rdx \
+	 * 3rd arg -> r10 \
+	 * 4th arg -> r8 \
+	 */
+
+#define CSTUB_POST \
+ \
+	return ret; \
+}
+
+#define CSTUB_ASM_0(name) \
+        	CSTUB_ASM_PRE(name)	   \
+                : "a" (uc->cap_no) \
+		: "rsi", "rdx", "r10", "r8", "memory", "cc");
+
+#define CSTUB_ASM_1(name, first)		   \
+        	CSTUB_ASM_PRE(name)	   \
+		: "a" (uc->cap_no), "S" (first)		\
+		: "rdx", "r10", "r8", "memory", "cc");
+
+#define CSTUB_ASM_2(name, first, second)   \
+        	CSTUB_ASM_PRE(name)	   \
+		: "a" (uc->cap_no), "S" (first), "d" (second)	\
+		: "r10", "r8", "memory", "cc");
+
+#define CSTUB_ASM_3(name, first, second, third)	\
+        	CSTUB_ASM_PRE(name)	   \
+		: "a" (uc->cap_no), "S" (first), "d" (second), "r" (third) \
+		: "r8", "memory", "cc");
+
+#define CSTUB_ASM_4(name, first, second, third, fourth)	\
+        	CSTUB_ASM_PRE(name)	   \
+		: "a" (uc->cap_no), "S" (first), "d" (second), "r" (third), "r" (fourth) \
+		: "memory", "cc");
+
+#else /* x86_32 implementation */
 #define CSTUB_ASM_PRE(name) \
 	__asm__ __volatile__( \
 		"pushl %%ebp\n\t" \
@@ -63,7 +122,7 @@
         	CSTUB_ASM_PRE(name)	   \
 		: "a" (uc->cap_no), "b" (first), "S" (second), "D" (third), "d" (fourth) \
 		: "memory", "cc");
-
+#endif /* X86_64 */
 
 #define CSTUB_FN_0(type, name)						\
 	__attribute__((regparm(1))) type name##_call(struct usr_inv_cap *uc) \

@@ -106,7 +106,7 @@ composite_make_syscall:
 	addq $32, %rsp /* esi, edi, and ebx not trashed because of cdecl conventions, and edx's value doesn't really matter here */
 
 	popq %rdi /* user-ip from above */
-	popq %r8 /* and the sp */
+ 	popq %r8 /* and the sp */
 
 	jmp cos_exit
 //	RET_TO_USER

@@ -125,7 +125,6 @@ cos_post_default_deref_addr_tramp:   /* for the previous address */
 	jmp cos_exit
 
 #else /* X86_32 Implementation begins here! */
-	asdfjsffiuiuiuiu
 	SAVE_ALL
 	pushl %eax
 	call hijack_syscall_monitor

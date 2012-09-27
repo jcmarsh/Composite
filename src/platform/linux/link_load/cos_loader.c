@@ -45,7 +45,9 @@
 
 #include <cobj_format.h>
 
-enum {PRINT_NONE = 0, PRINT_HIGH, PRINT_NORMAL, PRINT_DEBUG} print_lvl = PRINT_HIGH;
+//enum {PRINT_NONE = 0, PRINT_HIGH, PRINT_NORMAL, PRINT_DEBUG} print_lvl = PRINT_HIGH;
+enum {PRINT_NONE = 0, PRINT_HIGH, PRINT_NORMAL, PRINT_DEBUG} print_lvl = PRINT_DEBUG;
+
 
 #define printl(lvl,format, args...)				\
 	{							\
@@ -523,7 +525,9 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 	genscript(0);
 	run_linker(service_name, tmp_exec);
 	
-	obj = bfd_openr(tmp_exec, "elf32-i386");
+	// Needs to be select correct format -jcm
+	obj = bfd_openr(tmp_exec, "elf64-x86-64");
+	//	obj = bfd_openr(tmp_exec, "elf32-i386");
 	if(!obj){
 		bfd_perror("object open failure");
 		return -1;
@@ -540,9 +544,9 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 	/* Determine the size of and allocate the text and Read-Only data area */
 	text_size = calculate_mem_size(TEXT_S, RODATA_S);
 	ro_size   = calculate_mem_size(RODATA_S, DATA_S);
-	printl(PRINT_DEBUG, "\tRead only text (%x) and data section (%x): %x:%x.\n",
+	printl(PRINT_DEBUG, "\tRead only text (%x) and data section (%x): %lx:%x.\n",
 	       (unsigned int)text_size, (unsigned int)ro_size, 
-	       (unsigned int)ro_start, (unsigned int)text_size+ro_size);
+	       ro_start, (unsigned int)text_size+ro_size);
 
 	/* see calculate_mem_size for why we do this...not intelligent */
 	ro_size_unaligned = calculate_mem_size(TEXT_S, DATA_S);
@@ -562,8 +566,8 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 			/* If you get outrageous sizes here, there is
 			 * a required section missing (such as
 			 * rodata).  Add a const. */
-			printl(PRINT_DEBUG, "Error mapping 0x%x(0x%x)\n", 
-			       (unsigned int)ro_start, (unsigned int)ro_size);
+			printl(PRINT_DEBUG, "Error mapping 0x%lx(0x%x)\n", 
+			       ro_start, (unsigned int)ro_size);
 			perror("Couldn't map text segment into address space");
 			return -1;
 		}
@@ -574,8 +578,8 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 	alldata_size = calculate_mem_size(DATA_S, MAXSEC_S);
 	data_size    = bfd_sect_size(obj, srcobj[DATA_S].s);
 
-	printl(PRINT_DEBUG, "\tData section: %x:%x\n",
-	       (unsigned int)data_start, (unsigned int)alldata_size);
+	printl(PRINT_DEBUG, "\tData section: %lx:%x\n",
+	       data_start, (unsigned int)alldata_size);
 
 	alldata_size = round_up_to_page(alldata_size);
 	if (alldata_size != 0 && !is_booter_loaded(ret_data)) {
@@ -635,7 +639,9 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 	genscript(1);
 	run_linker(service_name, tmp_exec);
 	unlink(script);
-	objout = bfd_openr(tmp_exec, "elf32-i386");
+	// Need to set the file format correctly -jcm
+	objout = bfd_openr(tmp_exec, "elf64-x86-64");
+	//	objout = bfd_openr(tmp_exec, "elf32-i386");
 	if(!objout){
 		bfd_perror("Object open failure\n");
 		return -1;
@@ -675,8 +681,8 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 		 * ... and copy that buffer into the actual memory location
 		 * object is linked for (load it!)
 		 */
-		printl(PRINT_DEBUG, "\tCopying RO to %x from %x of size %x.\n", 
-		       (unsigned int) ro_start, (unsigned int)tmp_storage, (unsigned int)ro_size);
+		printl(PRINT_DEBUG, "\tCopying RO to %lx from %p of size %x.\n", 
+		       ro_start, tmp_storage, (unsigned int)ro_size);
 		memcpy((void*)ro_start, tmp_storage, ro_size);
 	} else {
 		char *sect_loc;
@@ -686,16 +692,15 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 			return -1;
 		}
 		sect_loc = cobj_sect_contents(h, 0);
-		printl(PRINT_DEBUG, "\tSection @ %d, size %d, addr %x, sect start %d\n", (u32_t)sect_loc-(u32_t)h, 
-		       cobj_sect_size(h, 0), cobj_sect_addr(h, 0), cobj_sect_content_offset(h));
+		printl(PRINT_DEBUG, "\tSection @ %ld, size %d, addr %x, sect start %d\n", (vaddr_t)sect_loc-(vaddr_t)h, cobj_sect_size(h, 0), cobj_sect_addr(h, 0), cobj_sect_content_offset(h));
 		assert(sect_loc);
 		memcpy(sect_loc, tmp_storage, ret_data->sections[SERV_SECT_RO].size);
 	}
 
 	printl(PRINT_DEBUG, "\tretreiving DATA at offset %x of size %x.\n", 
 	       srcobj[DATA_S].offset, (unsigned int)bfd_sect_size(objout, srcobj[DATA_S].s));
-	printl(PRINT_DEBUG, "\tCopying data from object to %x:%x.\n", 
-	       (unsigned int)tmp_storage + srcobj[DATA_S].offset, 
+	printl(PRINT_DEBUG, "\tCopying data from object to %lx:%x.\n", 
+	       (unsigned long)tmp_storage + srcobj[DATA_S].offset, 
 	       (unsigned int)bfd_sect_size(obj, srcobj[DATA_S].s));
 
 	/* and now do the same for the data and BSS */
@@ -705,8 +710,8 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 
 	printl(PRINT_DEBUG, "\tretreiving BSS at offset %x of size %x.\n", 
 	       srcobj[BSS_S].offset, (unsigned int)bfd_sect_size(objout, srcobj[BSS_S].s));
-	printl(PRINT_DEBUG, "\tZeroing out BSS from %x of size %x.\n", 
-	       (unsigned int)tmp_storage + srcobj[BSS_S].offset,
+	printl(PRINT_DEBUG, "\tZeroing out BSS from %lx of size %x.\n", 
+	       (unsigned long)tmp_storage + srcobj[BSS_S].offset,
 	       (unsigned int)bfd_sect_size(obj, srcobj[BSS_S].s));
 
 	/* Zero bss */
@@ -722,8 +727,8 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 //		round_up_to_page(ret_data->sections[SERV_SECT_BSS].size)) == (unsigned int)alldata_size);
 
 	if (!is_booter_loaded(ret_data)) {
-		printl(PRINT_DEBUG, "\tCopying DATA to %x from %x of size %x.\n", 
-		       (unsigned int) data_start, (unsigned int)tmp_storage, (unsigned int)alldata_size);
+		printl(PRINT_DEBUG, "\tCopying DATA to %lx from %lx of size %x.\n", 
+		       (unsigned long) data_start, (unsigned long)tmp_storage, (unsigned int)alldata_size);
 		
 		memcpy((void*)data_start, tmp_storage, alldata_size);
 	} else {
@@ -731,15 +736,14 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 		int ret;
 
 		if (cobj_sect_init(h, 1, COBJ_SECT_READ | COBJ_SECT_WRITE, 
-				   (u32_t)((char*)data_start + ret_data->sections[SERV_SECT_DATA].offset), 
+				   (vaddr_t)((char*)data_start + ret_data->sections[SERV_SECT_DATA].offset), 
 				   ret_data->sections[SERV_SECT_DATA].size)) {
 			printl(PRINT_HIGH, "Could not create data section in cobj for %s\n", service_name);
 			return -1;
 		}
 
 		sect_loc = cobj_sect_contents(h, 1);
-		printl(PRINT_DEBUG, "\tSection @ %d, size %d, addr %x, sect start %d\n", (u32_t)sect_loc-(u32_t)h, 
-		       cobj_sect_size(h, 1), cobj_sect_addr(h, 1), cobj_sect_content_offset(h));
+		printl(PRINT_DEBUG, "\tSection @ %ld, size %d, addr %x, sect start %d\n", (vaddr_t)sect_loc-(vaddr_t)h, cobj_sect_size(h, 1), cobj_sect_addr(h, 1), cobj_sect_content_offset(h));
 		memcpy(sect_loc, tmp_storage, ret_data->sections[SERV_SECT_DATA].size);
 
 		if ((ret = cobj_sect_init(h, 2, COBJ_SECT_READ | COBJ_SECT_WRITE | COBJ_SECT_ZEROS, 
@@ -749,8 +753,8 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 			return -1;
 		}
  		sect_loc = cobj_sect_contents(h, 2);
-		printl(PRINT_DEBUG, "Section @ %d, size %d, addr %x, sect start %d\n", 
-		       sect_loc ? (u32_t)sect_loc-(u32_t)h : 0, 
+		printl(PRINT_DEBUG, "Section @ %ld, size %d, addr %x, sect start %d\n", 
+		       sect_loc ? (vaddr_t)sect_loc-(vaddr_t)h : 0, 
 		       cobj_sect_size(h, 2), cobj_sect_addr(h, 2), cobj_sect_content_offset(h));
 	}
 	
@@ -1029,7 +1033,9 @@ static int obj_serialize_symbols(char *tmp_exec, int symb_type, struct service_s
  	bfd *obj; 
 	struct symb_type *st;
 
-	obj = bfd_openr(tmp_exec, "elf32-i386");
+	// Need to set format correctly - jcm
+	obj = bfd_openr(tmp_exec, "elf64-x86-64");
+	//obj = bfd_openr(tmp_exec, "elf32-i386");
 	if(!obj){
 		printl(PRINT_HIGH, "Attempting to open %s\n", str->obj);
 		bfd_perror("Object open failure");

@@ -336,7 +336,7 @@ static inline void *aed_mmap(int cntl_fd, void *start, size_t length,
 			     int prot, int flags, int fd, off_t offset)
 {
 	struct mmap_args args;
-	int ret;
+	long ret;
 
 	args.start = start;
 	args.length = length;

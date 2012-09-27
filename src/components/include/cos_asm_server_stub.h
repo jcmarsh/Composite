@@ -22,11 +22,11 @@
 
 #ifdef X86_64
 /* Not yet implemented */
-#define cos_asm_server_fn_stub(name, fn)	//	\
+#define cos_asm_server_fn_stub(name, fn)//	\
   //.globl name##_inv ;				\
-  //.type  name##_inv, @function ;		\
-  //.align 16 ;					\
-  //name##_inv:					\
+//.type  name##_inv, @function ;		\
+//.align 16 ;					\
+//name##_inv:					\
 //        COS_ASM_GET_STACK	  \
 //	pushl %ebp;		  \
 //	xor %ebp, %ebp;		  \

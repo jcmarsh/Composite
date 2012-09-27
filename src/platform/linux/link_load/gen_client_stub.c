@@ -32,6 +32,39 @@
  * data.
  */
 
+#ifdef X86_64
+char *fn_string = 
+".text\n"
+".globl %s\n"
+".align 16\n" 
+"%s:\n\t"
+/* get the cap table */
+/* "movl $ST_user_caps, %%eax\n\t" */
+/* "/\* eax now holds the **usr_inv_cap *\/\n\t" */
+/* "/\* get the specific *usr_inv_cap we are interested in *\/\n\t" */
+/* "addl $%d, %%eax\n\t" */
+"movq $%s, %%rax\n\t"
+/*"movl (%%eax), %%eax\n\t"
+  "ret\n\t"*/
+/* are we ST, hardcoded as 0? */
+/*"cmpl $0, %d(%%eax)\n\t"*/
+/*"jne 1f\n\t"*/
+/* static branch predict will go here */
+/* invocation count inc */
+"/* If we would overflow the invocation count, don't count */\n\t"
+"cmpl $(~0), %d(%%rax)\n\t"
+"je 1f\n\t"
+"/* Static branch prediction will go here: incriment invocation cnt */\n\t"
+"incl %d(%%rax)\n" /* why is this 4 cycles? how aren't we using the parallelism? */
+// The following approach works too and avoids the branch...but has the same cost.
+/*"incl %d(%%eax)\n\t" */ /* why is this 4 cycles? how aren't we using the parallelism? */
+/*"andl $0x7FFFFFFF, %d(%%eax)\n\t"*/
+/*"jmp *%d(%%eax)\n"*/
+"1: \n\t"
+/*"pushl $ST_inv_stk\n\t"*/
+"/* Call the invocation fn; either direct inv, or stub as set by kernel */\n\t"
+"jmp *%d(%%rax)\n";
+#else /* x86_32 implementation */
 char *fn_string = 
 ".text\n"
 ".globl %s\n"
@@ -67,6 +100,7 @@ char *fn_string =
  * Note that in either case, %eax holds the ptr to the usr_inv_cap:
  * useful as that entry holds the kernel version of the capability.
  */
+#endif /* X86_64 */
 
 /*
 

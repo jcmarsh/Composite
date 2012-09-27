@@ -30,6 +30,7 @@ typedef signed char      s8_t;
 typedef signed short int s16_t;
 typedef signed int       s32_t;
 typedef signed long long s64_t;  // Actually, long long is just 64 bits, so it should be fine as is. - jcm
+// Long long is always going to be 64 bits, so it is not appropriate for addresses.
 // So the question is, should any of the structs that use these be changed? - jcm
 #endif
 
@@ -211,6 +212,7 @@ struct cos_trans_fns {
  * dereferenced.  They will generally be used to set up page table
  * entries.
  */
+typedef unsigned long gaddr_t;  /* I don't know if it should be paddr_t or vaddr_t -jcm */
 typedef unsigned long paddr_t;	/* physical address */
 typedef unsigned long vaddr_t;	/* virtual address */
 typedef unsigned int page_index_t;

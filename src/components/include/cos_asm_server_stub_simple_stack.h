@@ -21,6 +21,47 @@
  * we know that when the %ebp is 0, we are at the end of the stack.
  */
 
+#ifdef X86_64
+#define cos_asm_server_stub(name) 		\
+.globl name##_inv ;				\
+.type  name##_inv, @function ;			\
+.align 16 ;					\
+name##_inv:					\
+        COS_ASM_GET_STACK			\
+	pushq %rbp;				\
+	xor %rbp, %rbp;				\
+        pushq %r10;				\
+        pushq %rdx;				\
+        pushq %rsi;				\
+        call name ;				\
+        addq $32, %rsp;				\
+  						\
+        movq %rax, %rdi;			\
+        movq $RET_CAP, %rax;			\
+        COS_ASM_RET_STACK			\
+  						\
+        syscall;
+
+#define cos_asm_server_stub_spdid(name) 	\
+  .globl name##_inv ;				\
+  .type  name##_inv, @function ;	        \
+  .align 16 ;					\
+  name##_inv:					\
+          COS_ASM_GET_STACK			\
+    	  pushq %rbp;				\
+  	  xor %rbp, %rbp;			\
+          pushq %r10;				\
+	  pushq %rdx;				\
+	  pushq %rdi;				\
+	  call name ;				\
+	  addq $32, %rsp;			\
+  						\
+	  movq %rax, %rdi;			\
+	  movq $RET_CAP, %rax;			\
+	  COS_ASM_RET_STACK			\
+  						\
+	  syscall;
+#else
 #define cos_asm_server_stub(name) \
 .globl name##_inv ;               \
 .type  name##_inv, @function ;	  \
@@ -60,5 +101,5 @@ name##_inv:                             \
         COS_ASM_RET_STACK		\
                                         \
         sysenter;
-
+#endif /* X86_64 */
 #endif /* COS_ASM_SERVER_STUB_H */
