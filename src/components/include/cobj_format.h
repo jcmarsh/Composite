@@ -57,7 +57,8 @@ enum {
 struct cobj_sect {
 	u32_t flags;
 	u32_t offset;
-	u32_t vaddr, bytes;
+        vaddr_t vaddr;
+        u32_t bytes;
 } __attribute__((packed));
 
 enum {
@@ -68,7 +69,7 @@ enum {
 
 struct cobj_symb {
 	u32_t type;
-	u32_t vaddr;
+	vaddr_t vaddr;
 } __attribute__((packed));
 
 struct cobj_cap { 
@@ -84,21 +85,21 @@ struct cobj_header *cobj_create(u32_t id, char *name, u32_t nsect,
 				u32_t sect_sz, u32_t nsymb, u32_t ncap, 
 				char *space, unsigned int sz, u32_t flags);
 
-int cobj_sect_init(struct cobj_header *h, unsigned int sect_idx, u32_t flags, u32_t vaddr, u32_t size);
-int cobj_symb_init(struct cobj_header *h, unsigned int symb_idx, u32_t type, u32_t vaddr);
+int cobj_sect_init(struct cobj_header *h, unsigned int sect_idx, u32_t flags, vaddr_t vaddr, u32_t size);
+int cobj_symb_init(struct cobj_header *h, unsigned int symb_idx, u32_t type, vaddr_t vaddr);
 int cobj_cap_init(struct cobj_header *h, unsigned int cap_idx, u32_t cap_off, 
-		  u32_t dest_id, u32_t sfn, u32_t cstub, u32_t sstub, u32_t fault_num);
+		  u32_t dest_id, u32_t sfn, u32_t cstub, u32_t sstub, u32_t fault_num); // are cstub and sstub addresses? -jcm
 
 struct cobj_sect *cobj_sect_get(struct cobj_header *h, unsigned int sect_id);
 struct cobj_symb *cobj_symb_get(struct cobj_header *h, unsigned int symb_id);
 struct cobj_cap * cobj_cap_get(struct cobj_header *h, unsigned int cap_id);
-void *            cobj_vaddr_get(struct cobj_header *h, u32_t vaddr);
+void *            cobj_vaddr_get(struct cobj_header *h, vaddr_t vaddr);
 
 int   cobj_sect_empty(struct cobj_header *h, unsigned int sect_id);
 u32_t cobj_sect_content_offset(struct cobj_header *h);
 char *cobj_sect_contents(struct cobj_header *h, unsigned int sect_id);
 u32_t cobj_sect_size(struct cobj_header *h, unsigned int sect_id);
-u32_t cobj_sect_addr(struct cobj_header *h, unsigned int sect_id);
+vaddr_t cobj_sect_addr(struct cobj_header *h, unsigned int sect_id);
 
 static inline int cobj_cap_undef(struct cobj_cap *c) 
 {

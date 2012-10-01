@@ -692,7 +692,7 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 			return -1;
 		}
 		sect_loc = cobj_sect_contents(h, 0);
-		printl(PRINT_DEBUG, "\tSection @ %ld, size %d, addr %x, sect start %d\n", (vaddr_t)sect_loc-(vaddr_t)h, cobj_sect_size(h, 0), cobj_sect_addr(h, 0), cobj_sect_content_offset(h));
+		printl(PRINT_DEBUG, "\tSection @ %ld, size %d, addr %lx, sect start %d\n", (vaddr_t)sect_loc-(vaddr_t)h, cobj_sect_size(h, 0), cobj_sect_addr(h, 0), cobj_sect_content_offset(h));
 		assert(sect_loc);
 		memcpy(sect_loc, tmp_storage, ret_data->sections[SERV_SECT_RO].size);
 	}
@@ -743,7 +743,7 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 		}
 
 		sect_loc = cobj_sect_contents(h, 1);
-		printl(PRINT_DEBUG, "\tSection @ %ld, size %d, addr %x, sect start %d\n", (vaddr_t)sect_loc-(vaddr_t)h, cobj_sect_size(h, 1), cobj_sect_addr(h, 1), cobj_sect_content_offset(h));
+		printl(PRINT_DEBUG, "\tSection @ %ld, size %d, addr %lx, sect start %d\n", (vaddr_t)sect_loc-(vaddr_t)h, cobj_sect_size(h, 1), cobj_sect_addr(h, 1), cobj_sect_content_offset(h));
 		memcpy(sect_loc, tmp_storage, ret_data->sections[SERV_SECT_DATA].size);
 
 		if ((ret = cobj_sect_init(h, 2, COBJ_SECT_READ | COBJ_SECT_WRITE | COBJ_SECT_ZEROS, 
@@ -753,7 +753,7 @@ static int load_service(struct service_symbs *ret_data, unsigned long lower_addr
 			return -1;
 		}
  		sect_loc = cobj_sect_contents(h, 2);
-		printl(PRINT_DEBUG, "Section @ %ld, size %d, addr %x, sect start %d\n", 
+		printl(PRINT_DEBUG, "Section @ %ld, size %d, addr %lx, sect start %d\n", 
 		       sect_loc ? (vaddr_t)sect_loc-(vaddr_t)h : 0, 
 		       cobj_sect_size(h, 2), cobj_sect_addr(h, 2), cobj_sect_content_offset(h));
 	}
@@ -2102,7 +2102,7 @@ static int serialize_spd_graph(struct comp_graph *g, int sz, struct service_symb
 	return 0;
 }
 
-int **get_heap_ptr(struct service_symbs *ss)
+long **get_heap_ptr(struct service_symbs *ss)
 {
 	struct cos_component_information *ci;
 
@@ -2111,7 +2111,7 @@ int **get_heap_ptr(struct service_symbs *ss)
 		printl(PRINT_DEBUG, "Could not find component information struct in %s.\n", ss->obj);
 		exit(-1);
 	}
-	return (int**)&(ci->cos_heap_ptr);
+	return (long**)&(ci->cos_heap_ptr);
 }
 
 /* 
@@ -2121,7 +2121,7 @@ int **get_heap_ptr(struct service_symbs *ss)
  */
 static void make_spd_mpd_mgr(struct service_symbs *mm, struct service_symbs *all)
 {
-	int **heap_ptr, *heap_ptr_val;
+	long **heap_ptr, *heap_ptr_val;
 	struct comp_graph *g;
 
 	if (is_booter_loaded(mm)) {
@@ -2152,7 +2152,7 @@ static void make_spd_init_file(struct service_symbs *ic, const char *fname)
 	int fd = open(fname, O_RDWR);
 	struct stat b;
 	int real_sz, sz, ret;
-	int **heap_ptr, *heap_ptr_val;
+	long **heap_ptr, *heap_ptr_val;
 	int *start;
 	struct cos_component_information *ci;
 
@@ -2201,7 +2201,7 @@ static void make_spd_init_file(struct service_symbs *ic, const char *fname)
 	}
 	printl(PRINT_HIGH, "Found init file component: remapping heap_ptr from %p to %p, mapping in file.\n",
 	       *heap_ptr, (char*)heap_ptr_val + sz);
-	*heap_ptr = (int*)((char*)heap_ptr_val + sz);
+	*heap_ptr = (long*)((long*)heap_ptr_val + sz);
 	ci->cos_poly[1] = real_sz;
 }
 
@@ -2468,8 +2468,8 @@ spd_assign_ids(struct service_symbs *all)
 static void 
 make_spd_llboot(struct service_symbs *boot, struct service_symbs *all)
 {
-	volatile int **heap_ptr;
-	int *heap_ptr_val, n = 0;
+	volatile long **heap_ptr;
+	long *heap_ptr_val, n = 0;
 	struct cobj_header *h;
 	char *mem;
 	u32_t obj_size;
@@ -2496,7 +2496,7 @@ make_spd_llboot(struct service_symbs *boot, struct service_symbs *all)
 		}
 	}
 
-	heap_ptr = (volatile int **)get_heap_ptr(boot);
+	heap_ptr = (volatile long **)get_heap_ptr(boot);
 	ci = (void *)get_symb_address(&boot->exported, COMP_INFO);
 	ci->cos_poly[0] = (vaddr_t)*heap_ptr;
 
@@ -2507,14 +2507,14 @@ make_spd_llboot(struct service_symbs *boot, struct service_symbs *all)
 		if (!is_booter_loaded(all) || is_hl_booter_loaded(all)) continue;
 		n++;
 
-		heap_ptr_val = (int*)*heap_ptr;
+		heap_ptr_val = (long*)*heap_ptr;
 		assert(is_booter_loaded(all));
 		h = all->cobj;
 		assert(h);
 
 		obj_size = round_up_to_cacheline(h->size);
 		map_addr = round_up_to_page(heap_ptr_val);
-		map_sz = (int)obj_size - (int)(map_addr-(vaddr_t)heap_ptr_val);
+		map_sz = (int)obj_size - (int)(map_addr-(vaddr_t)heap_ptr_val); // This doesn't seem correct -jcm
 		if (map_sz > 0) {
 			mem = mmap((void*)map_addr, map_sz, PROT_WRITE | PROT_READ,
 				   MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
@@ -2526,16 +2526,16 @@ make_spd_llboot(struct service_symbs *boot, struct service_symbs *all)
 		printl(PRINT_HIGH, "boot component: placing %s:%d @ %p, copied from %p:%d\n", 
 		       all->obj, service_get_spdid(all), heap_ptr_val, h, obj_size);
 		memcpy(heap_ptr_val, h, h->size);
-		*heap_ptr = (void*)(((int)heap_ptr_val) + obj_size);
+		*heap_ptr = (void*)(((long)heap_ptr_val) + obj_size);
 	}
 	all = first;
-	*heap_ptr = (int*)(round_up_to_page((int)*heap_ptr));
+	*heap_ptr = (long*)(round_up_to_page((long)*heap_ptr));
 	ci->cos_poly[1] = (vaddr_t)n;
 
-	ci->cos_poly[2] = ((unsigned int)*heap_ptr);
+	ci->cos_poly[2] = ((unsigned long)*heap_ptr);
 	make_spd_mpd_mgr(boot, all);
 
-	ci->cos_poly[3] = ((unsigned int)*heap_ptr);
+	ci->cos_poly[3] = ((unsigned long)*heap_ptr);
 	make_spd_config_comp(boot, all);
 }
 
@@ -2548,7 +2548,7 @@ static void format_config_info(struct service_symbs *ss, struct component_init_s
 
 		info = ss->init_str;
 		if (strlen(info) >= INIT_STR_SZ) {
-			printl(PRINT_HIGH, "Initialization string %s for component %s is too long (longer than %d)",
+			printl(PRINT_HIGH, "Initialization string %s for component %s is too long (longer than %zd)",
 			       info, ss->obj, strlen(info));
 			exit(-1);
 		}
@@ -2575,7 +2575,7 @@ static void format_config_info(struct service_symbs *ss, struct component_init_s
 
 static void make_spd_config_comp(struct service_symbs *c, struct service_symbs *all)
 {
-	int **heap_ptr, *heap_ptr_val;
+	long **heap_ptr, *heap_ptr_val;
 	struct component_init_str *info;
 
 	heap_ptr = get_heap_ptr(c);

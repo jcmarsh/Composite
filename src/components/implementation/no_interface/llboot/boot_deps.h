@@ -38,6 +38,7 @@ printc(char *fmt, ...)
 
 #include <cos_component.h>
 #include <res_spec.h>
+#include <cobj_format.h>
 
 /* 
  * alpha:        the initial thread context for the system
@@ -248,9 +249,9 @@ boot_deps_init(void)
 	int i;
 
 	alpha        = cos_get_thd_id();
-	recovery_thd = cos_create_thread((int)llboot_ret_thd, (int)0, 0);
+	recovery_thd = cos_create_thread((long)llboot_ret_thd, (int)0, 0);
 	assert(recovery_thd >= 0);
-	init_thd     = cos_create_thread((int)llboot_ret_thd, 0, 0);
+	init_thd     = cos_create_thread((long)llboot_ret_thd, 0, 0);
 	printc("Low-level booter created threads:\n\t"
 	       "%d: alpha\n\t%d: recov\n\t%d: init\n",
 	       alpha, recovery_thd, init_thd);

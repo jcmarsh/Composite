@@ -347,7 +347,7 @@ static inline void *aed_mmap(int cntl_fd, void *start, size_t length,
 
 	if ((ret = ioctl(cntl_fd, AED_EXECUTIVE_MMAP, &args)) == -1) {
 		perror("ioctl on aed mmap: ");
-		printf("\nIoctl returned %d.\n", ret);
+		printf("\nIoctl returned %ld.\n", ret);
 		exit(-1);
 	}
 
