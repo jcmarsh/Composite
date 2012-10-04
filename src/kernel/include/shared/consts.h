@@ -71,7 +71,7 @@ struct pt_regs {
 //struct pt_regs { int dummy[16]; };
 #endif
 #endif
-#define PAGE_ORDER 12
+#define PAGE_ORDER 12 // Should be fine, same in linux kernel -jcm
 #ifndef __KERNEL__
 #define PAGE_SIZE (1<<PAGE_ORDER)
 #endif
@@ -93,7 +93,7 @@ struct pt_regs {
 #define MAX_STATIC_CAP 1024
 
 #define PAGE_MASK    (~(PAGE_SIZE-1))
-#define PGD_SHIFT    39// 22 // 39 for x86_64 jcm -- gap: probably 21 -- read "pgd_shift = size of each component's region
+#define PGD_SHIFT    21// 22 // 39 for x86_64 jcm -- gap: probably 21 -- read "pgd_shift = size of each component's region
 #define PGD_RANGE    (unsigned long)((unsigned long)1<<PGD_SHIFT) // Added cast jcm
 #define PGD_SIZE     PGD_RANGE
 #define PGD_MASK     (~(PGD_RANGE-1))
@@ -117,6 +117,7 @@ struct pt_regs {
 #define round_up_to_cacheline(x) round_up_to_pow2(x, CACHE_LINE)
 
 #define SHARED_REGION_START (unsigned long)(1<<30)  // 1 gig // Added cast jcm
+//#define SHARED_REGION_START 0xffff880040000000 // delete this -jcm
 #define SHARED_REGION_SIZE PGD_RANGE
 #define SERVICE_START (SHARED_REGION_START+SHARED_REGION_SIZE)
 #define SERVICE_END   ((unsigned long)SHARED_REGION_START+(unsigned long)(1<<30))

@@ -1967,6 +1967,9 @@ static int aed_open(struct inode *inode, struct file *file)
 	kern_handle = aed_allocate_mm();
 	kern_mm = aed_get_mm(kern_handle);
 	kern_pgtbl_mapping = (vaddr_t)kern_mm->pgd;
+
+	printk("kern_mm: %p\tmm->pgd: %p\n", kern_mm, kern_mm->pgd);
+
 	//assert(!pgtbl_entry_absent(kern_pgtbl_mapping, 0xffffb0b0));
 	/*
 	 * This is really and truly crap, because of Linux.  Linux has
@@ -2012,10 +2015,13 @@ static int aed_open(struct inode *inode, struct file *file)
 
 	/* Where in the page directory should the pte go? */
 	pgd = pgd_offset(current->mm, COS_INFO_REGION_ADDR);
+	printk("Current\tpgd: %p\tmm->pgd: %p\tpgd_index: %lx\n", current->mm, current->mm->pgd, pgd_index(COS_INFO_REGION_ADDR));
+	printk("COS_INFO: %lx\n", COS_INFO_REGION_ADDR);
 	if (pgd_none(*pgd)) {
 		printk("Could not get pgd_offset.\n");
 		return -EFAULT;
 	}
+	
 	/* hook up the pte to the pgd */
 	pgd->pgd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 
@@ -2023,11 +2029,22 @@ static int aed_open(struct inode *inode, struct file *file)
 	 * This is used to copy valid (linux) kernel mappings into a
 	 * new mpd.  Copy shared region too.
 	 */
+	/* Doesn't work... can we get away without it for now? -jcm
+	printk("Hello?\n");
 	pgd = pgd_offset(kern_mm, COS_INFO_REGION_ADDR);
+	printk("Anybody?\n");
+	printk("pgd: %p\n", pgd);
 	if (pgd_none(*pgd)) {
 		printk("Could not get pgd_offset in the kernel map.\n");
+		printk("pgd: %p\tkern_mm: %p\tCOS_INFO: %lx\n", pgd, kern_mm, COS_INFO_REGION_ADDR);
+		printk("KERNEL\tpgd: %p\tmm->pgd: %p\tpgd_index: %lx\n", kern_mm, kern_mm->pgd, pgd_index(COS_INFO_REGION_ADDR));
+		//((kern_mm)->pgd + pgd_index((COS_INFO_REGION_ADDR)))
 		return -EFAULT;
 	}
+	printk("Successfully got pgd_offset in the kernel map.\n");
+	printk("pgd: %p\tkern_mm: %p\tCOS_INFO: %lx\n", pgd, kern_mm, COS_INFO_REGION_ADDR);
+	printk("KERNEL\tpgd: %p\tmm->pgd: %p\tpgd_index: %lx\n", kern_mm, kern_mm->pgd, pgd_index(COS_INFO_REGION_ADDR));
+
 	pgd->pgd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 
 	printk("cos: info region @ %lu(%lx)\n",
@@ -2035,6 +2052,7 @@ static int aed_open(struct inode *inode, struct file *file)
 
 	if (open_checks()) return -EFAULT;
 	
+	*/
 	// FIXME: jcm Check to see if offsets are correct
 	check_offsets();
 
@@ -2238,6 +2256,10 @@ static int asym_exec_dom_init(void)
 	printk("cos: Installing the hijack module.\n");
 
 #ifdef X86_64
+	if (make_proc_aed()) {
+	  printk("make_proc_aed() failed.");
+	  return -1;
+	}
 	hw_int_init();
 	hw_int_override_sysenter(sysenter_interposition_entry);
 #else /* x86_32 implementation */
@@ -2265,13 +2287,9 @@ static int asym_exec_dom_init(void)
 
 static void asym_exec_dom_exit(void)
 {
-#ifdef X86_64
-  hw_int_reset();
-  // will likely have to add in the remove_proc_entry call, at which point we can get rid of this ifdef
-#else
         hw_int_reset();
 	remove_proc_entry("aed", NULL);
-#endif /* X86_64 */
+
 	return;
 }
 
