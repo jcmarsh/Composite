@@ -1948,6 +1948,8 @@ static int aed_open(struct inode *inode, struct file *file)
 	pgd_t *pgd;
 	void* data_page;
 
+	printk("LOOK WHAT YOU HAVE DONE!\n");
+
 	if (composite_thread != NULL || composite_union_mm != NULL) {
 		printk("cos: Composite subsystem already used by %d.\n", composite_thread->pid);
 		return -EBUSY;
@@ -2021,7 +2023,9 @@ static int aed_open(struct inode *inode, struct file *file)
 		printk("Could not get pgd_offset.\n");
 		return -EFAULT;
 	}
-	
+
+	//	return 0;	
+
 	/* hook up the pte to the pgd */
 	pgd->pgd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 
@@ -2030,7 +2034,7 @@ static int aed_open(struct inode *inode, struct file *file)
 	 * new mpd.  Copy shared region too.
 	 */
 	/* Doesn't work... can we get away without it for now? -jcm
-	printk("Hello?\n");
+
 	pgd = pgd_offset(kern_mm, COS_INFO_REGION_ADDR);
 	printk("Anybody?\n");
 	printk("pgd: %p\n", pgd);
@@ -2054,19 +2058,40 @@ static int aed_open(struct inode *inode, struct file *file)
 	
 	*/
 	// FIXME: jcm Check to see if offsets are correct
+	printk("Check Offsets\n");
 	check_offsets();
 
+	printk("Thread init\n");
 	thd_init();
+	printk("SPD init\n");
 	spd_init();
 	// FIXME: jcm IPC.H
-	ipc_init();
+	printk("IPC init\n");
+
+	return 0; // DOWN SANITY CHECK
+
+	ipc_init(); // This is the line of pure hellspawn.
+
+	//return 0; // UP
+
 	// FIXME: jcm MMAP.H
+	printk("Memory init\n");
 	cos_init_memory();
 
+	printk("Reg timers\n");
 	register_timers();
+
+	//return 0; // UP
+
+	printk("Measures init\n");
 	cos_meas_init();
+
+	// return 0; UP
+
+	printk("Net init\n");
 	cos_net_init();
 
+	printk("Leave aed_open\n");
 	return 0;
 }
 
@@ -2256,11 +2281,14 @@ static int asym_exec_dom_init(void)
 	printk("cos: Installing the hijack module.\n");
 
 #ifdef X86_64
+	printk("XXXXX make_proc_aed\n");
 	if (make_proc_aed()) {
 	  printk("make_proc_aed() failed.");
 	  return -1;
 	}
+	printk("XXXXX hw_int_init\n");
 	hw_int_init();
+	printk("XXXXX hw_int_override_sysenter\n");
 	hw_int_override_sysenter(sysenter_interposition_entry);
 #else /* x86_32 implementation */
 	/* pt_regs in this linux version has changed... */
@@ -2282,6 +2310,7 @@ static int asym_exec_dom_init(void)
 	init_guest_mm_vect();
 	trusted_mm = NULL;
 #endif /* X86_64 */
+	printk("hijack module successfully installed.\n");
 	return 0;
 }
 

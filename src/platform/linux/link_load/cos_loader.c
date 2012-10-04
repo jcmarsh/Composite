@@ -2623,9 +2623,16 @@ static void setup_kernel(struct service_symbs *services)
 	int (*fn)(void);
 	unsigned long long start, end;
 	
+	
 	cntl_fd = aed_open_cntl_fd();
 
+	//	while (1);
+
 	s = services;
+	printl(PRINT_HIGH, "\nEntered setup_kernel\n\n");
+	fflush(stdout);
+	while (1);
+
 	while (s) {
 		struct service_symbs *t;
 		struct spd_info *t_spd;
@@ -2940,6 +2947,7 @@ int main(int argc, char *argv[])
 		goto dealloc_exit;
 	}
 	
+
 	gen_stubs_and_link(stub_gen_prog, services);
 	if (load_all_services(services)) {
 		printl(PRINT_HIGH, "Error loading services, aborting.\n");
