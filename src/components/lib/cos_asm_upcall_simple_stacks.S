@@ -10,7 +10,7 @@
 #include <consts.h>
 
 #define RET_CAP ((1<<20)-1)
-#define IPRETURN 4
+//#define IPRETURN 4 // already defined in asm_ipc_defs.h -jcm
 
 #ifdef X86_64
 	/* Not Implemented */

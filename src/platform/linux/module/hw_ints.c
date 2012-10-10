@@ -168,7 +168,7 @@ hw_int_reset(void)
 #endif /* X86_64 */
 }
 
-extern unsigned int *pgtbl_module_to_vaddr(unsigned long addr);
+extern unsigned long *pgtbl_module_to_vaddr(unsigned long addr);
 
 /* 
  * The problem: Module code and data is vmalloced, which means it is

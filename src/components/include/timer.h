@@ -4,8 +4,13 @@
 #ifdef TIMER_ACTIVATE
 
 #ifndef rdtscl
+#ifdef X86_64
+#define rdtscl(val)						\
+	__asm__ __volatile__ ("rdtsc" : "=a" (val) : : "rdx")
+#else
 #define rdtscl(val)						\
 	__asm__ __volatile__ ("rdtsc" : "=a" (val) : : "edx")
+#endif /* X86_64 */
 #endif
 
 #define STATIC_TIMER_RECORDS(name, N) struct timer_record name[N]

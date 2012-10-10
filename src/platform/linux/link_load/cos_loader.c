@@ -2626,12 +2626,9 @@ static void setup_kernel(struct service_symbs *services)
 	
 	cntl_fd = aed_open_cntl_fd();
 
-	//	while (1);
-
 	s = services;
 	printl(PRINT_HIGH, "\nEntered setup_kernel\n\n");
 	fflush(stdout);
-	while (1);
 
 	while (s) {
 		struct service_symbs *t;

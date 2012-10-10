@@ -27,8 +27,13 @@
  * manipulation are quick.
  */
 // FIXME: 1024 should probably 512 for x86_64 jcm
-unsigned int shared_region_page[1024] PAGE_ALIGNED;
-unsigned int shared_data_page[1024] PAGE_ALIGNED;
+#ifdef X86_64
+unsigned long shared_region_page[512] PAGE_ALIGNED;
+unsigned long shared_data_page[512] PAGE_ALIGNED;
+#else
+unsigned long shared_region_page[1024] PAGE_ALIGNED;
+unsigned long shared_data_page[1024] PAGE_ALIGNED;
+#endif /* X86_64 */
 
 extern struct invocation_cap invocation_capabilities[MAX_STATIC_CAP];
 
@@ -55,7 +60,7 @@ void ipc_init(void)
 {
 	//memset(shared_region_page, 0, PAGE_SIZE);
 	memset(shared_data_page, 0, PAGE_SIZE);
-	rdtscl(cycle_cnt);
+	rdtscll(cycle_cnt);
 
 	return;
 }
@@ -2241,7 +2246,7 @@ static void update_sched_evts(struct thread *new, int new_flags,
 		unsigned long last;
 
 		last = cycle_cnt;
-		rdtscl(cycle_cnt);
+		rdtscll(cycle_cnt);
 		elapsed = cycle_cnt - last;
 	}
 	

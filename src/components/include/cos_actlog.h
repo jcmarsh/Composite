@@ -8,8 +8,12 @@
 #define NUM_ACT_ITEMS 1
 #endif
 #ifndef rdtscl
-#define rdtscl(val)					\
+#define rdtscl(val)						\
+	__asm__ __volatile__ ("rdtsc" : "=a" (val) : : "rdx")
+#else
+#define rdtscl(val)						\
 	__asm__ __volatile__ ("rdtsc" : "=a" (val) : : "edx")
+#endif /* X86_64 */
 #endif
 
 /* typedef struct {} filter_t; */

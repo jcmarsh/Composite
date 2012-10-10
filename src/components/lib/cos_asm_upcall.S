@@ -15,7 +15,7 @@
 #ifdef X86_64
 /* nothing implemented yet */
 #define RET_CAP ((1<<20)-1)
-#define IPRETURN 4
+//#define IPRETURN 4 // already defined in asm_ipc_defs.h -jcm
 
 #if ENABLE_STACK_MANAGER!=1
 .bss
@@ -101,7 +101,7 @@ cos_atomic_user4_end:
 	movq (%rax), %rax
 #else /* x86_32 implementation */
 #define RET_CAP ((1<<20)-1)
-#define IPRETURN 4
+//#define IPRETURN 4 // already defined in asm_ipc_defs.h -jcm
 
 #if ENABLE_STACK_MANAGER!=1
 .bss

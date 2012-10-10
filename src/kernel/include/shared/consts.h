@@ -92,12 +92,40 @@ struct pt_regs {
 #define MAX_NUM_SPDS   64
 #define MAX_STATIC_CAP 1024
 
+#ifdef X86_64
+// I'm going to change the nameing scheme to break things. Levels 4 - 1, 4 being the highest (old PGDIR)
+// Okay, that did not go over well.
+#define SHIFT_4      39
+#define SIZE_4       (unsigned long)(1 << SHIFT_4)
+#define MASK_4       (unsigned long)(~(SIZE_4 - 1))
+#define PTRS_PER_4   512
+#define SHIFT_3      30
+#define SIZE_3       (unsigned long)(1 << SHIFT_3)
+#define MASK_3       (unsigned long)(~(SIZE_3 - 1))
+#define PTRS_PER_3   512
+#define SHIFT_2      21
+#define SIZE_2       (unsigned long)(1 << SHIFT_2)
+#define MASK_2       (unsigned long)(~(SIZE_2 - 1))
+#define PTRS_PER_2   512
+
 #define PAGE_MASK    (~(PAGE_SIZE-1))
-#define PGD_SHIFT    21// 22 // 39 for x86_64 jcm -- gap: probably 21 -- read "pgd_shift = size of each component's region
+#define PGD_SHIFT    21 // This isn't 22? -jcm
 #define PGD_RANGE    (unsigned long)((unsigned long)1<<PGD_SHIFT) // Added cast jcm
 #define PGD_SIZE     PGD_RANGE
 #define PGD_MASK     (~(PGD_RANGE-1))
-#define PGD_PER_PTBL 512 //gap -- # entries per level in the pgtbl (old:1024)
+
+#define PGD_PER_PTBL 512
+#define WORD_SIZE    64
+
+#else /* x86_32 implementation */
+#define PAGE_MASK    (~(PAGE_SIZE-1))
+#define PGD_SHIFT    21 // This isn't 22? -jcm
+#define PGD_RANGE    (unsigned long)((unsigned long)1<<PGD_SHIFT) // Added cast jcm
+#define PGD_SIZE     PGD_RANGE
+#define PGD_MASK     (~(PGD_RANGE-1))
+#define PGD_PER_PTBL 1024
+#define WORD_SIZE 32
+#endif /* X86_64 */
 
 #define round_to_pow2(x, pow2)    (((unsigned long)(x))&(~(pow2-1)))
 #define round_up_to_pow2(x, pow2) (round_to_pow2(((unsigned long)x)+pow2-1, pow2))
@@ -111,16 +139,15 @@ struct pt_regs {
 #define CACHE_ALIGNED __attribute__ ((aligned (CACHE_LINE)))
 #define HALF_CACHE_ALIGNED __attribute__ ((aligned (CACHE_LINE/2)))
 #define PAGE_ALIGNED __attribute__ ((aligned(PAGE_SIZE)))
-#define WORD_SIZE 64 // 32 // Not for x86_64 James
 
 #define round_to_cacheline(x)    round_to_pow2(x, CACHE_LINE)
 #define round_up_to_cacheline(x) round_up_to_pow2(x, CACHE_LINE)
 
 #define SHARED_REGION_START (unsigned long)(1<<30)  // 1 gig // Added cast jcm
-//#define SHARED_REGION_START 0xffff880040000000 // delete this -jcm
+//#define SHARED_REGION_START 0xffff800040000000 // delete this -jcm
 #define SHARED_REGION_SIZE PGD_RANGE
 #define SERVICE_START (SHARED_REGION_START+SHARED_REGION_SIZE)
-#define SERVICE_END   ((unsigned long)SHARED_REGION_START+(unsigned long)(1<<30))
+#define SERVICE_END   (SHARED_REGION_START+(unsigned long)(1<<30))
 /* size of virtual address spanned by one pgd entry */
 #define SERVICE_SIZE PGD_RANGE
 #define COS_INFO_REGION_ADDR SHARED_REGION_START

@@ -626,7 +626,15 @@ static inline int cos_argreg_arr_intern(struct cos_array *ca)
 }
 
 #define prevent_tail_call(ret) __asm__ ("" : "=r" (ret) : "m" (ret))
+
+#ifdef X86_64
+#define rdtscll(value)				       \
+  __asm__ ("rdtsc\n\t"				       \
+	   "shl $(32), %%rdx\n\t"		       \
+	   "or %%rax, %%rdx" : "=d" (value) : : "rax")
+#else
 #define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
+#endif /* X86_64 */
 
 #ifndef STR
 #define STRX(x) #x
