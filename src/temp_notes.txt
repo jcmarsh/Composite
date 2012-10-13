@@ -1,0 +1,69 @@
+/*
+ * PGDIR_SHIFT determines what a top-level page table entry can map
+ */
+#define PGDIR_SHIFT     39
+#define PTRS_PER_PGD    512
+
+/*
+ * 3rd level page
+ */
+#define PUD_SHIFT       30
+#define PTRS_PER_PUD    512
+
+/*
+ * PMD_SHIFT determines the size of the area a middle-level
+ * page table can map
+ */
+#define PMD_SHIFT       21
+#define PTRS_PER_PMD    512
+
+/*
+ * entries per page directory level
+ */
+#define PTRS_PER_PTE    512
+
+#define PMD_SIZE        (_AC(1, UL) << PMD_SHIFT)
+#define PMD_MASK        (~(PMD_SIZE - 1))
+#define PUD_SIZE        (_AC(1, UL) << PUD_SHIFT)
+#define PUD_MASK        (~(PUD_SIZE - 1))
+#define PGDIR_SIZE      (_AC(1, UL) << PGDIR_SHIFT)
+#define PGDIR_MASK      (~(PGDIR_SIZE - 1))
+
+struct mm_struct *mm = current->mm;
+pgd = pgd_offset(mm, address);
+pmd = pmd_offset(pgd, address);  
+pte = *pte_offset_map(pmd, address);  
+page = pte_page(pte);  
+
+         pgd_t *pgd;
+         pmd_t *pmd;
+         pte_t *ptep, pte;
+ 
+         pgd = pgd_offset(mm, address);
+         if (pgd_none(*pgd) || pgd_bad(*pgd))
+                 goto out;
+ 
+         pmd = pmd_offset(pgd, address);
+         if (pmd_none(*pmd) || pmd_bad(*pmd))
+                 goto out;
+ 
+         ptep = pte_offset(pmd, address);
+         if (!ptep)
+                 goto out;
+ 
+         pte = *ptep;
+
+#define pgd_page(pgd)  ((unsigned long) __va(pgd_val(pgd) & PAGE_MASK))
+
+#define _PAGE_PRESENT   0x001
+#define _PAGE_RW    0x002
+#define _PAGE_USER  0x004
+#define _PAGE_PWT   0x008
+#define _PAGE_PCD   0x010
+#define _PAGE_ACCESSED  0x020
+#define _PAGE_DIRTY 0x040
+#define _PAGE_PSE   0x080   /* 4 MB (or 2MB) page, Pentium+, if present.. */
+#define _PAGE_GLOBAL    0x100   /* Global TLB entry PPro+ */
+#define _PAGE_UNUSED1   0x200   /* available for programmer */
+#define _PAGE_UNUSED2   0x400
+#define _PAGE_UNUSED3   0x800

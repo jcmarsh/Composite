@@ -68,6 +68,7 @@ extern unsigned long temp_esp_storage;
  * data region for passing arguments and holding persistent data.
  */
 pte_t *shared_region_pte;
+pmd_t *shared_region_pmd;
 pgd_t *union_pgd;
 
 struct task_struct *composite_thread = NULL;
@@ -110,6 +111,60 @@ DEFINE_PER_CPU(unsigned long, composite_old_rsp);
 DEFINE_PER_CPU(unsigned long, x86_tss) = { 0 };
 
 // James' ugly debugging code.
+void print_bit(unsigned long addr) {
+  unsigned long mask = 0x8000000000000000;
+  unsigned long current_bit = 0;
+  
+  current_bit = addr & mask;
+  if (current_bit > 0) {
+    printk("1");
+  } else {
+    printk("0");
+  }
+}
+
+void print_addr_in_binary(unsigned long addr) {
+  int i = 0;
+  unsigned long a = addr;
+
+  printk("BitsBitsBitsBits: ");
+  // Unused bits
+  for (i = 0; i < (64 - 48); i++) {
+    print_bit(a);
+    a = a << 1;
+  }
+  printk(" ");
+  // PGD
+  for (i = 0; i < 9; i++) {
+    print_bit(a);
+    a = a << 1;
+  }
+  printk(" ");
+  // PUD
+  for (i = 0; i < 9; i++) {
+    print_bit(a);
+    a = a << 1;
+  }
+  printk(" ");
+  // PMD
+  for (i = 0; i < 9; i++) {
+    print_bit(a);
+    a = a << 1;
+  }
+  printk(" ");
+  // PTE
+  for (i = 0; i < 9; i++) {
+    print_bit(a);
+    a = a << 1;
+  }
+  printk(" ");
+  // Offset
+  for (i = 0; i < 12; i++) {
+    print_bit(a);
+    a = a << 1;
+  }
+  printk("\n");    
+}
 
 /* 
  * THIS FUNCTION IS HORRIBLE.
@@ -539,23 +594,29 @@ static inline pte_t *lookup_address_mm(struct mm_struct *mm, unsigned long addr)
 	
 	printk("WWWWWWWWWWW mm %lx\t addr %lx\n", mm, addr);
 	printk("WWWWWWWWWWW pgd: %p\t *pgd: %lx\n", pgd, *pgd);
+	//printk("WWWWWWWWWWW va_*pgd: %lx\n", __va(pgd));
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
+		printk("Failure in lookup_address_mm, pgd is bad.\n");	 
 		return NULL;
 	}
 	pud = pud_offset(pgd, addr);
 	printk("WWWWWWWWWWW pud: %p\t *pud: %lx\n", pud, *pud);
 	if (pud_none(*pud) || pud_bad(*pud)) {
+		printk("Failure in lookup_address_mm, pud is bad.\n");
 		return NULL;
 	}
 	pmd = pmd_offset(pud, addr);
 	printk("WWWWWWWWWWW pmd: %p\t *pmd: %lx\n", pmd, *pmd);
 	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
+		printk("Failure in lookup_address_mm, pmd is bad.\n");
 		return NULL;
 	}
 	pte = pte_offset_kernel(pmd, addr);
 	printk("WWWWWWWWWWW pte: %p\t *pte: %lx\n", pte, *pte);
-	if (!pte)
+	if (!pte) {
+		printk("Failure in lookup_address_mm, pte is bad.\n");
 		return NULL;
+	}
         return pte;
 #else /* x86_32 implementation */
 	pgd_t *pgd = pgd_offset(mm, addr);
@@ -686,6 +747,8 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				return -1;
 			}
 			assert(spd == virtual_namespace_query(spd_info.lowest_addr+PAGE_SIZE));
+
+			printk("ALALALALALALALALALALALALALALALALALALALALA\n");
 
 			copy_pgd_range(mm, current->mm, spd_info.lowest_addr, spd_info.size);
 			copy_pgd_range(mm, current->mm, COS_INFO_REGION_ADDR, PGD_RANGE);
@@ -951,7 +1014,13 @@ static void cos_report_fault(struct thread *t, vaddr_t fault_addr, int ecode, st
 }
 
 #define SHARED_DATA_PAGE_SIZE PAGE_SIZE
-extern unsigned int shared_region_page[1024], shared_data_page[1024];
+#ifdef X86_64
+extern unsigned long shared_region_page[512] PAGE_ALIGNED;
+extern unsigned long shared_data_page[512] PAGE_ALIGNED;
+#else
+extern unsigned long shared_region_page[1024] PAGE_ALIGNED;
+extern unsigned long shared_data_page[1024] PAGE_ALIGNED;
+#endif /* X86_64 */
 
 /* 
  * FIXME: this logic should be in inv.c or platform independent code
@@ -1308,6 +1377,7 @@ static inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 	pte_t *pte;
 
 	printk("XXXXXXXXXXX pgtbl %lx\t addr %lx\n", pgtbl, addr);
+	//printk("XXXXXXXXXXX va_pgtbl %lx\t pgd_index(addr) %lx\n", pa_to_va((void*)pgtbl), pgd_index(addr));
 	printk("XXXXXXXXXXX pgd: %p\t *pgd: %lx\n", pgd, *pgd);
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		return NULL;
@@ -1385,6 +1455,8 @@ int pgtbl_add_entry(paddr_t pgtbl, unsigned long vaddr, unsigned long paddr)
 {
 	pte_t *pte = pgtbl_lookup_address(pgtbl, vaddr);
 
+	printk("You AAAHHHHHH? pgtbl: %lx\t vaddr: %lx\t paddr: %lx\n", pgtbl, vaddr, paddr);
+
 	if (!pte || pte_val(*pte) & _PAGE_PRESENT) {
 		return -1;
 	}
@@ -1399,6 +1471,8 @@ int pgtbl_add_middledir(paddr_t pt, unsigned long vaddr)
 {
 	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(vaddr);
 	unsigned long *page;
+
+	printk("You RAAAANNNGGGG? pt: %lx\t vaddr: %lx\n", pt, vaddr);
 
 	page = cos_alloc_page(); /* zeroed */
 	if (!page) return -1;
@@ -1468,19 +1542,38 @@ paddr_t pgtbl_rem_ret(paddr_t pgtbl, vaddr_t va)
 vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 {
 #ifdef X86_64
-	// TODO: Fix this to work with the 3 level tables in x86_64 -jcm
-  //	pud_t *pud = pud_offset(pgtbl, addr);
-  //	pmd_t *pmd = pmd_offset(pud, addr);
-	pte_t *pte = pgtbl_lookup_address(pgtbl, addr);
-
 	unsigned long kaddr;
+	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
+	pud_t *pud;
+	pmd_t *pmd;
+	pte_t *pte;
+
+	printk("XXXXXXXXXXX pgd: %p\t *pgd: %lx\n", pgd, *pgd);
+	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
+		return NULL;
+	}
+	pud = pud_offset(pgd, addr);
+	printk("XXXXXXXXXXX pud: %p\t *pud: %lx\n", pud, *pud);
+	if (pud_none(*pud) || pud_bad(*pud)) {
+		return NULL;
+	}
+	pmd = pmd_offset(pud, addr);
+	printk("XXXXXXXXXXX pmd: %p\t *pmd: %lx\n", pmd, *pmd);
+	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
+		return NULL;
+	}
+	pte = pte_offset_kernel(pmd, addr);
+	printk("XXXXXXXXXXX pte: %p\t *pte: %lx\n", pte, *pte);
 
 	if (!pte || !(pte_val(*pte) & _PAGE_PRESENT)) {
  	        printk("ERROR in pgtbl_vaddr_to_kaddr\n");
 		return 0;
 	}
 	
+	printk("*----------*\n");
 	kaddr = (unsigned long)__va(pte_val(*pte) & PTE_MASK) + (~PAGE_MASK & addr);
+	print_addr_in_binary(kaddr);
+
 	return (vaddr_t)kaddr;
 #else /* x86_32 implementation */
 	pte_t *pte = pgtbl_lookup_address(pgtbl, addr);
@@ -1569,6 +1662,8 @@ void copy_pgtbl_range(paddr_t pt_to, paddr_t pt_from,
 	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
 	unsigned int span = hpage_index(size);
 
+	printk("Here I go, again on my own: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
+
 	if (!(pgd_val(*fpgd)) & _PAGE_PRESENT) {
 		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
 		       (unsigned int)lower_addr);
@@ -1584,6 +1679,8 @@ void copy_pgtbl_range_nocheck(paddr_t pt_to, paddr_t pt_from,
 	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
 	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
 	unsigned int span = hpage_index(size);
+
+	printk("Here I go, no check!: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
 
 	/* sizeof(pgd entry) is intended */
 	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
@@ -2020,12 +2117,16 @@ static int open_checks(void)
  */
 static int aed_open(struct inode *inode, struct file *file)
 {
+	// This lookup is supposed to fail. If it didn't, that would mean the memory is already in use.
 	pte_t *pte = lookup_address_mm(current->mm, COS_INFO_REGION_ADDR);
 	pgd_t *pgd;
+	pud_t *pud;
+	pmd_t *pmd;
 	void* data_page;
+	unsigned long data_page_addr;
 	void* james_test;
 
-	printk("00000000000 pte: %lx\n", *pte);
+	printk("Who let the dogs out?\n");
 
 	if (composite_thread != NULL || composite_union_mm != NULL) {
 		printk("cos: Composite subsystem already used by %d.\n", composite_thread->pid);
@@ -2044,11 +2145,12 @@ static int aed_open(struct inode *inode, struct file *file)
 	}
 
 	kern_handle = aed_allocate_mm();
-	//	kern_mm = aed_get_mm(kern_handle);
-	kern_mm = current->mm; // TODO: This is horrible -jcm
+	kern_mm = aed_get_mm(kern_handle);
+	//kern_mm = current->mm; // TODO: This is horrible -jcm
 	kern_pgtbl_mapping = (vaddr_t)kern_mm->pgd;
 
-	printk("kern_mm: %p\tmm->pgd: %p\n", kern_mm, kern_mm->pgd);
+	printk("kern_mm:\t %p\tmm->pgd: %p\n", kern_mm, kern_mm->pgd);
+	printk("current_mm:\t %p\tmm->pgd: %p\n", current->mm, current->mm->pgd);
 
 	//assert(!pgtbl_entry_absent(kern_pgtbl_mapping, 0xffffb0b0));
 	/*
@@ -2073,19 +2175,27 @@ static int aed_open(struct inode *inode, struct file *file)
 	 */
 	shared_region_pte = (pte_t *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), 
 							  (unsigned long)shared_region_page);
-	printk("WMWMWMW: (kernel addr) shared_region_pte: %p\t from (virtual addr) shared_region_page: %p\n", shared_region_pte, shared_region_page);
+	printk("WMWMWMW: (kernel addr) shared_region_pte: %p\n", shared_region_pte);
 	if (((unsigned long)shared_region_pte & ~PAGE_MASK) != 0) {
 		printk("Allocated page for shared region not page aligned.\n");
 		return -EFAULT;
 	}
-	james_test = memset(shared_region_pte, 0, PAGE_SIZE);
-	printk("WMWMWMW: Memset result: %p\n", james_test);
-
+	memset(shared_region_pte, 0, PAGE_SIZE);
+	
 	/* hook in the data page */
+	// These two lines seem like they are causing problems. -jcm
 	data_page = va_to_pa((void *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), 
-							   (unsigned long)shared_data_page));
-	shared_region_pte[0].pte = (unsigned long)(data_page) |
+							  (unsigned long)shared_data_page));
+	shared_region_pte[0].pte = ((unsigned long)(data_page) & PTE_MASK) |
 		(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+	//	shared_region_pmd[0].pmd = ((unsigned long)(data_page) & ~PUD_MASK & PMD_MASK);
+	printk("WMWMWMW: shared_region_pte.pte: %lx\n", shared_region_pte[0].pte);
+	//	printk("WMWMWMW: shared_region_pmd.pmd: %lx\n", shared_region_pmd[0].pmd);
+	printk("WMWMWMW: data_page: %lx\n", data_page);
+	//	data_page_addr = *((unsigned long *)data_page);
+	print_addr_in_binary(pa_to_va(data_page));
+	printk("WMWMWMW: shared_data_page: %lx\n", shared_data_page);
+	print_addr_in_binary(shared_data_page);
 
 	/* hook up the actual virtual memory pages to the pte
 	 * protection mapping equivalent to PAGE_SHARED */
@@ -2096,18 +2206,30 @@ static int aed_open(struct inode *inode, struct file *file)
 */
 
 	/* Where in the page directory should the pte go? */
+	// TODO: I really need to abstract this into a function. pgtbl_lookup_address and another function do the same thing. -jcm
 	pgd = pgd_offset(current->mm, COS_INFO_REGION_ADDR);
-	printk("Current\tpgd: %p\tmm->pgd: %p\tpgd_index: %lx\n", current->mm, current->mm->pgd, pgd_index(COS_INFO_REGION_ADDR));
-	printk("COS_INFO: %lx\n", COS_INFO_REGION_ADDR);
 	if (pgd_none(*pgd)) {
 		printk("Could not get pgd_offset.\n");
 		return -EFAULT;
 	}
+	pgd->pgd = (unsigned long)(shared_region_pte) & PGD_MASK;
+	pud = pud_offset(pgd, COS_INFO_REGION_ADDR);
+	if (pud_none(*pud)) {
+		printk("Could not get pud_offset.\n");
+		return -EFAULT;
+	}
+	pud->pud = (unsigned long)(shared_region_pte) & PUD_MASK;
+	pmd = pmd_offset(pud, COS_INFO_REGION_ADDR);
+	if (pmd_none(*pmd)) {
+		printk("Could not get pmd_offset.\n");
+		return -EFAULT;
+	}
+	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 
-	//	return 0;	
-
-	/* hook up the pte to the pgd */
-	pgd->pgd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
+	pte = lookup_address_mm(current->mm, COS_INFO_REGION_ADDR);
+	printk("pte: %lx\n", pte);
+	/* hook up the pte to the pgd */ // Or... how about not, since this blows up x86_64? - jcm.
+	printk("WTF is >PAGE_TABLE? %lx\n", _PAGE_TABLE);
 
 	/* 
 	 * This is used to copy valid (linux) kernel mappings into a

@@ -62,6 +62,8 @@ struct thread *thd_alloc(struct spd *spd)
 	unsigned short int id;
 	void *page;
 
+	printk("And you may ask yourself, how did I get here?\n");
+
 	thd = thread_freelist_head;
 	if (thd == NULL) {
 		printk("cos: Could not create thread.\n");
@@ -80,7 +82,7 @@ struct thread *thd_alloc(struct spd *spd)
 	thd->thread_id = id;
 
 	thd->data_region = page;
-	*(int*)page = 4; /* HACK: sizeof(struct cos_argr_placekeeper) */
+	*(int*)page = 4; /* HACK: sizeof(struct cos_argr_placekeeper) */ // TODO: Gah! Fix this -jcm
 	thd->ul_data_page = COS_INFO_REGION_ADDR + (PAGE_SIZE * id);
 	thd_publish_data_page(thd, (vaddr_t)page);
 
