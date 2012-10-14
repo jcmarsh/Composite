@@ -1341,6 +1341,7 @@ int kern_handle;
  */
 void *cos_alloc_page(void)
 {
+	printk("Allocating a page!!!!!!!!!!!\n");
 	void *page = (void*)__get_free_pages(GFP_KERNEL, 0);
 
 	memset(page, 0, PAGE_SIZE);
@@ -2124,7 +2125,7 @@ static int aed_open(struct inode *inode, struct file *file)
 	pmd_t *pmd;
 	void* data_page;
 	unsigned long data_page_addr;
-	void* james_test;
+	unsigned long james_test;
 
 	printk("Who let the dogs out?\n");
 
@@ -2190,7 +2191,7 @@ static int aed_open(struct inode *inode, struct file *file)
 		(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
 	//	shared_region_pmd[0].pmd = ((unsigned long)(data_page) & ~PUD_MASK & PMD_MASK);
 	printk("WMWMWMW: shared_region_pte.pte: %lx\n", shared_region_pte[0].pte);
-	//	printk("WMWMWMW: shared_region_pmd.pmd: %lx\n", shared_region_pmd[0].pmd);
+	printk("WMWMWMW: shared_region_pte: %lx\n", shared_region_pte);
 	printk("WMWMWMW: data_page: %lx\n", data_page);
 	//	data_page_addr = *((unsigned long *)data_page);
 	print_addr_in_binary(pa_to_va(data_page));
@@ -2208,25 +2209,41 @@ static int aed_open(struct inode *inode, struct file *file)
 	/* Where in the page directory should the pte go? */
 	// TODO: I really need to abstract this into a function. pgtbl_lookup_address and another function do the same thing. -jcm
 	pgd = pgd_offset(current->mm, COS_INFO_REGION_ADDR);
-	if (pgd_none(*pgd)) {
+	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		printk("Could not get pgd_offset.\n");
 		return -EFAULT;
 	}
-	pgd->pgd = (unsigned long)(shared_region_pte) & PGD_MASK;
+	james_test = (unsigned long)(shared_region_pte[0].pte) & PGD_MASK;
+	printk("HHH: imagine: %lx\n", james_test);
+	//	pgd->pgd = (unsigned long)__pa(shared_region_pte) & PGD_MASK;
 	pud = pud_offset(pgd, COS_INFO_REGION_ADDR);
-	if (pud_none(*pud)) {
+	if (pud_none(*pud) || pud_bad(*pud)) {
 		printk("Could not get pud_offset.\n");
 		return -EFAULT;
 	}
-	pud->pud = (unsigned long)(shared_region_pte) & PUD_MASK;
+	//	pud->pud = (unsigned long)(*shared_region_pte) & PUD_MASK;
+	james_test = (unsigned long)(shared_region_pte[0].pte) & PUD_MASK;
+	printk("HHH: imagine: %lx\n", james_test);
 	pmd = pmd_offset(pud, COS_INFO_REGION_ADDR);
-	if (pmd_none(*pmd)) {
+	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
 		printk("Could not get pmd_offset.\n");
 		return -EFAULT;
 	}
-	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
+	//	pmd->pmd = (unsigned long)(*shared_region_pte) &PMD_MASK;
+	james_test = (unsigned long)(shared_region_pte[0].pte) & PMD_MASK;
+	printk("HHH: imagine: %lx\n", james_test);
+	james_test = (unsigned long)__pa(shared_region_pte);
+	printk("HHH: imagine: %lx\n", james_test);
+	printk("HHH: imagine: %lx\n", james_test & PMD_MASK);
+	printk("HHH: pmd:\t %lx\t pmd->pmd:\t %lx\n", pmd, pmd->pmd);
+	pte = pte_offset_kernel(pmd, COS_INFO_REGION_ADDR);
+	if (pte_none(*pte)) {
+		printk("Could not get pte_offset.\n");
+		return -EFAULT;
+	}
+	pte->pte = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 
-	pte = lookup_address_mm(current->mm, COS_INFO_REGION_ADDR);
+	//	pte = lookup_address_mm(current->mm, COS_INFO_REGION_ADDR);
 	printk("pte: %lx\n", pte);
 	/* hook up the pte to the pgd */ // Or... how about not, since this blows up x86_64? - jcm.
 	printk("WTF is >PAGE_TABLE? %lx\n", _PAGE_TABLE);

@@ -67,3 +67,8 @@ page = pte_page(pte);
 #define _PAGE_UNUSED1   0x200   /* available for programmer */
 #define _PAGE_UNUSED2   0x400
 #define _PAGE_UNUSED3   0x800
+
+/*
+ * pgd_offset() returns a (pgd_t *)
+ * pgd_index() is used get the offset into the pgd page's array of pgd_t's;
+ */
