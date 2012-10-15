@@ -67,7 +67,8 @@ extern unsigned long temp_esp_storage;
  * shared region data including the read-only information page and the
  * data region for passing arguments and holding persistent data.
  */
-void *james_page;
+void *james_page0;
+void *james_page1;
 pte_t *shared_region_pte;
 pmd_t *shared_region_pmd;
 pgd_t *union_pgd;
@@ -2146,11 +2147,7 @@ static int aed_open(struct inode *inode, struct file *file)
 
 	kern_handle = aed_allocate_mm();
 	kern_mm = aed_get_mm(kern_handle);
-	//kern_mm = current->mm; // TODO: This is horrible -jcm
 	kern_pgtbl_mapping = (vaddr_t)kern_mm->pgd;
-
-	printk("kern_mm:\t %p\tmm->pgd: %p\n", kern_mm, kern_mm->pgd);
-	printk("current_mm:\t %p\tmm->pgd: %p\n", current->mm, current->mm->pgd);
 
 	//assert(!pgtbl_entry_absent(kern_pgtbl_mapping, 0xffffb0b0));
 	/*
@@ -2197,7 +2194,7 @@ static int aed_open(struct inode *inode, struct file *file)
 	lookup_address_mm(current->mm, COS_INFO_REGION_ADDR); // prints
 
 	/* Where in the page directory should the pte go? */
-	// TODO: I really need to abstract this into a function. pgtbl_lookup_address and another function do the same thing. -jcm
+	// TODO: I really need to abstract this into a function. pgtbl_lookup_address and another function do the same thing. And I'm about to do it again for kern_mm -jcm
 	pgd = pgd_offset(current->mm, COS_INFO_REGION_ADDR);
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		printk("Could not get pgd_offset.\n");
@@ -2209,52 +2206,40 @@ static int aed_open(struct inode *inode, struct file *file)
 		return -EFAULT;
 	}
 	pmd = pmd_offset(pud, COS_INFO_REGION_ADDR);
-	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
-		printk("Could not get pmd_offset. Filling in.\n");
-		james_page = cos_alloc_page();
-		pmd->pmd = (unsigned long)(__pa(james_page)) | _PAGE_TABLE;
-		lookup_address_mm(current->mm, COS_INFO_REGION_ADDR); // prints
-		if (pmd_none(*pmd) || pmd_bad(*pmd)) {
-		        printk("Still could not get pmd_offset. Bailing.\n");
-			return -EFAULT;
-		}
-	}
-	pte = pte_offset_kernel(pmd, COS_INFO_REGION_ADDR);
-	pte->pte = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
+	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 	lookup_address_mm(current->mm, COS_INFO_REGION_ADDR); // prints
-
-	if (pte_none(*pte)) {
-		printk("Could not get pte_offset.\n");
-		return -EFAULT;
-	}
-
-
-
-	//	pte = lookup_address_mm(current->mm, COS_INFO_REGION_ADDR);
-	printk("pte: %lx\n", pte);
-	/* hook up the pte to the pgd */ // Or... how about not, since this blows up x86_64? - jcm.
-	printk("WTF is >PAGE_TABLE? %lx\n", _PAGE_TABLE);
 
 	/* 
 	 * This is used to copy valid (linux) kernel mappings into a
 	 * new mpd.  Copy shared region too.
 	 */
-	// Doesn't work... can we get away without it for now? -jcm
 
+	lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
 	pgd = pgd_offset(kern_mm, COS_INFO_REGION_ADDR);
-	printk("pgd: %p\n", pgd);
-	if (pgd_none(*pgd)) {
+	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		printk("Could not get pgd_offset in the kernel map.\n");
-		printk("pgd: %p\tkern_mm: %p\tCOS_INFO: %lx\n", pgd, kern_mm, COS_INFO_REGION_ADDR);
-		printk("KERNEL\tpgd: %p\tmm->pgd: %p\tpgd_index: %lx\n", kern_mm, kern_mm->pgd, pgd_index(COS_INFO_REGION_ADDR));
-		//((kern_mm)->pgd + pgd_index((COS_INFO_REGION_ADDR)))
-		return -EFAULT;
+		james_page0 = cos_alloc_page();
+		pgd->pgd = (unsigned long)(__pa(james_page0)) | _PAGE_TABLE;
+		lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
+		if (pgd_none(*pgd) || pgd_bad(*pgd)) {
+		          printk("Still could not get pgd_offset. Bailing\n");
+			  return -EFAULT;
+		}
 	}
-	printk("Successfully got pgd_offset in the kernel map.\n");
-	printk("pgd: %p\tkern_mm: %p\tCOS_INFO: %lx\n", pgd, kern_mm, COS_INFO_REGION_ADDR);
-	printk("KERNEL\tpgd: %p\tmm->pgd: %p\tpgd_index: %lx\n", kern_mm, kern_mm->pgd, pgd_index(COS_INFO_REGION_ADDR));
-
-	pgd->pgd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
+	pud = pud_offset(pgd, COS_INFO_REGION_ADDR);
+	if (pud_none(*pud) || pud_bad(*pud)) {
+		printk("Could not get pud_offset in the kernel map.\n");
+		james_page1 = cos_alloc_page();
+		pud->pud = (unsigned long)(__pa(james_page1)) | _PAGE_TABLE;
+		lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
+		if (pud_none(*pud) || pud_bad(*pud)) {
+		          printk("Still could not get pud_offset. Bailing\n");
+			  return -EFAULT;
+		}
+	}
+	pmd = pmd_offset(pud, COS_INFO_REGION_ADDR);
+	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
+	lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
 
 	printk("cos: info region @ %lu(%lx)\n",
 	       COS_INFO_REGION_ADDR, COS_INFO_REGION_ADDR);
