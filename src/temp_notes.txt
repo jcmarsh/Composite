@@ -72,3 +72,8 @@ page = pte_page(pte);
  * pgd_offset() returns a (pgd_t *)
  * pgd_index() is used get the offset into the pgd page's array of pgd_t's;
  */
+
+static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
+{
+    return (pud_t *)pgd_page_vaddr(*pgd) + pud_index(address);
+}
