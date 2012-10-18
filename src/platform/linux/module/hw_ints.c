@@ -9,6 +9,8 @@
 
 #include <asm/desc.h>
 #include <linux/kernel.h>
+#include "../../../kernel/include/shared/cos_types.h"
+#include "page_tables.h"
 
 /*
  * The Linux provided descriptor structure is crap, probably due to
@@ -168,7 +170,8 @@ hw_int_reset(void)
 #endif /* X86_64 */
 }
 
-extern unsigned long *pgtbl_module_to_vaddr(unsigned long addr);
+// You are dumb. And need to fix this.
+//extern unsigned long *pgtbl_module_to_vaddr(unsigned long addr);
 
 /* 
  * The problem: Module code and data is vmalloced, which means it is

@@ -212,7 +212,6 @@ struct cos_trans_fns {
  * dereferenced.  They will generally be used to set up page table
  * entries.
  */
-typedef unsigned long gaddr_t;  /* I don't know if it should be paddr_t or vaddr_t -jcm */
 typedef unsigned long paddr_t;	/* physical address */
 typedef unsigned long vaddr_t;	/* virtual address */
 typedef unsigned int page_index_t;
