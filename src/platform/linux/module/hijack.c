@@ -569,89 +569,7 @@ static inline int save_user_regs_to_kern(struct pt_regs * __user user_regs_area,
 	return 0;
 }
 
-/*
- * Find the corresponding pte for the address and return its virtual
- * address.  Mainly a debugging tool to see if we are setting up the
- * correct page mappings, but also used to set characteristics in all
- * pages.
- */
-// TODO: This is almost identical to pgtbl_lookup_address, may be able to refactor -jcm
-// TODO: move to page_tables.c -jcm
-static inline pte_t *lookup_address_mm(struct mm_struct *mm, unsigned long addr)
-{
-#ifdef X86_64
-	pgd_t *pgd = pgd_offset(mm, addr);
-	pud_t *pud;
-	pmd_t *pmd;
-	pte_t *pte;
-	
-	printk("WWWWWWWWWWW mm %lx\t addr %lx\n", mm, addr);
-	printk("WWWWWWWWWWW pgd: %p\t *pgd: %lx\n", pgd, *pgd);
-	//printk("WWWWWWWWWWW va_*pgd: %lx\n", __va(pgd));
-	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
-		printk("Failure in lookup_address_mm, pgd is bad.\n");	 
-		return NULL;
-	}
-	pud = pud_offset(pgd, addr);
-	printk("WWWWWWWWWWW pud: %p\t *pud: %lx\n", pud, *pud);
-	if (pud_none(*pud) || pud_bad(*pud)) {
-		printk("Failure in lookup_address_mm, pud is bad.\n");
-		return NULL;
-	}
-	pmd = pmd_offset(pud, addr);
-	printk("WWWWWWWWWWW pmd: %p\t *pmd: %lx\n", pmd, *pmd);
-	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
-		printk("Failure in lookup_address_mm, pmd is bad.\n");
-		return NULL;
-	}
-	pte = pte_offset_kernel(pmd, addr);
-	printk("WWWWWWWWWWW pte: %p\t *pte: %lx\n", pte, *pte);
-	if (!pte) {
-		printk("Failure in lookup_address_mm, pte is bad.\n");
-		return NULL;
-	}
-        return pte;
-#else /* x86_32 implementation */
-	pgd_t *pgd = pgd_offset(mm, addr);
-	pud_t *pud;
-	pmd_t *pmd;
-	if (pgd_none(*pgd)) {
-		return NULL;
-	}
-	pud = pud_offset(pgd, addr);
-	if (pud_none(*pud)) {
-		return NULL;
-	}
-	pmd = pmd_offset(pud, addr);
-	if (pmd_none(*pmd)) {
-		return NULL;
-	}
-	if (pmd_large(*pmd))
-		return (pte_t *)pmd;
-        return pte_offset_kernel(pmd, addr);
-#endif /* X86_64 */
-}
-
-/* FIXME: change to clone_pgd_range */
-// TODO: This needs to be fixed for x86_64 -jcm
-static inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
-				  unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = pgd_offset(to_mm, lower_addr);
-	pgd_t *fpgd = pgd_offset(from_mm, lower_addr);
-	unsigned int span = hpage_index(size);
-
-#ifdef NIL
-	if (!(pgd_val(*fpgd) & _PAGE_PRESENT)) {
-		printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
-		       from_mm, (unsigned int)lower_addr);
-	}
-#endif
-
-	/* sizeof(pgd entry) is intended */
-	memcpy(tpgd, fpgd, span*sizeof(unsigned int)); // TODO: Definately not correct -jcm
-}
-
+// TODO: Examine -jcm
 #define flush_all(pgdir) load_cr3(pgdir)
 #define my_load_cr3(pgdir) asm volatile("movl %0,%%cr3": :"r" (__pa(pgdir)))
 #define flush_executive(pgdir) my_load_cr3(pgdir)
@@ -659,14 +577,9 @@ static inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *fro
 static int syscalls_enabled = 1;
 
 extern int virtual_namespace_alloc(struct spd *spd, unsigned long addr, unsigned int size);
-void zero_pgtbl_range(paddr_t pt, unsigned long lower_addr, unsigned long size);
-void copy_pgtbl_range(paddr_t pt_to, paddr_t pt_from, 
-		      unsigned long lower_addr, unsigned long size);
-void copy_pgtbl(paddr_t pt_to, paddr_t pt_from);
 //extern int copy_mm(unsigned long clone_flags, struct task_struct * tsk);
 void print_valid_pgtbl_entries(paddr_t pt);
 extern struct thread *ready_boot_thread(struct spd *init);
-vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr);
 
 static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -1833,28 +1746,13 @@ static int aed_open(struct inode *inode, struct file *file)
 
 	lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
 	pgd = pgd_offset(kern_mm, COS_INFO_REGION_ADDR);
-	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
-		printk("Could not get pgd_offset in the kernel map.\n");
-		james_page0 = cos_alloc_page();
-		pgd->pgd = (unsigned long)(__pa(james_page0)) | _PAGE_TABLE;
-		lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
-		if (pgd_none(*pgd) || pgd_bad(*pgd)) {
-		          printk("Still could not get pgd_offset. Bailing\n");
-			  return -EFAULT;
-		}
+
+	pmd = pgtbl_fill_to_pmd(pgd, COS_INFO_REGION_ADDR);
+	if (pmd == NULL) {
+	        printk("Failed to fill to pmd\n");
+		return -EFAULT;
 	}
-	pud = pud_offset(pgd, COS_INFO_REGION_ADDR);
-	if (pud_none(*pud) || pud_bad(*pud)) {
-		printk("Could not get pud_offset in the kernel map.\n");
-		james_page1 = cos_alloc_page();
-		pud->pud = (unsigned long)(__pa(james_page1)) | _PAGE_TABLE;
-		lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
-		if (pud_none(*pud) || pud_bad(*pud)) {
-		          printk("Still could not get pud_offset. Bailing\n");
-			  return -EFAULT;
-		}
-	}
-	pmd = pmd_offset(pud, COS_INFO_REGION_ADDR);
+
 	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 	lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
 
@@ -1879,7 +1777,7 @@ static int aed_open(struct inode *inode, struct file *file)
 	printk("IPC init\n");
 	ipc_init();
 
-	return 0; // DOWN
+	//	return 0; // DOWN
 
 	// FIXME: jcm MMAP.H
 	printk("Memory init\n");

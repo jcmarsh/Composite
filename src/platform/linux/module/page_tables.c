@@ -29,7 +29,7 @@ void *cos_alloc_page(void)
 {
 	// Using replaced __get_free_pages(GFP_KERNEL, 0) and memset 0 call. -jcm
 	void *page = (void*)get_zeroed_page(GFP_KERNEL);
-	printk("Allocating a page!!!!!!!!!!!\n");
+	//	printk("Allocating a page!!!!!!!!!!!\n");
 	if (!page) {
 	        printk("ERROR: cos_alloc_page failed!\n");
         }
@@ -42,13 +42,13 @@ void cos_free_page(void *page)
 	free_pages((unsigned long int)page, 0);
 }
 
+// TODO: Double check this -jcm 
 inline unsigned int hpage_index(unsigned long n)
 {
         unsigned int idx = n >> HPAGE_SHIFT;
         return (idx << HPAGE_SHIFT) != n ? idx + 1 : idx;
 }
 
-#ifdef X86_64
 /* returns the page table entry */
 unsigned long
 __pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
@@ -67,59 +67,6 @@ __pgtbl_or_pgd(paddr_t pgtbl, unsigned long addr, unsigned long val)
 	pgd_t *pt = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
 
 	pt->pgd = pgd_val(*pt) | val;
-}
-
-void pgtbl_print_path(paddr_t pgtbl, unsigned long addr)
-{
-	pgd_t *pt = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
-	pte_t *pe = pgtbl_lookup_address(pgtbl, addr);
-	
-	printk("cos: addr %x, pgd entry - %x, pte entry - %x\n", 
-	       (unsigned int)addr, (unsigned int)pgd_val(*pt), (unsigned int)pte_val(*pe));
-
-	return;
-}
-
-int pgtbl_add_entry(paddr_t pgtbl, unsigned long vaddr, unsigned long paddr)
-{
-	pte_t *pte = pgtbl_lookup_address(pgtbl, vaddr);
-
-	printk("You AAAHHHHHH? pgtbl: %lx\t vaddr: %lx\t paddr: %lx\n", pgtbl, vaddr, paddr);
-
-	if (!pte || pte_val(*pte) & _PAGE_PRESENT) {
-		return -1;
-	}
-	/*pte_val(*pte)*/
-	pte->pte = paddr | (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
-
-	return 0;
-}
-
-/* allocate and link in a page middle directory */
-int pgtbl_add_middledir(paddr_t pt, unsigned long vaddr)
-{
-	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(vaddr);
-	unsigned long *page;
-
-	printk("You RAAAANNNGGGG? pt: %lx\t vaddr: %lx\n", pt, vaddr);
-
-	page = cos_alloc_page(); /* zeroed */
-	if (!page) return -1;
-
-	pgd->pgd = (unsigned long)va_to_pa(page) | _PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED;
-	return 0;
-}
-
-int pgtbl_rem_middledir(paddr_t pt, unsigned long vaddr)
-{
-	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(vaddr);
-	unsigned long *page;
-
-	page = (unsigned long *)pa_to_va((void*)(pgd->pgd & PTE_PFN_MASK));
-	pgd->pgd = 0;
-	cos_free_page(page);
-
-	return 0;
 }
 
 int pgtbl_rem_middledir_range(paddr_t pt, unsigned long vaddr, long size)
@@ -170,7 +117,6 @@ unsigned long *pgtbl_module_to_vaddr(unsigned long addr)
 	return (unsigned long *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), addr);
 }
 
-
 inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 {
 	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
@@ -179,7 +125,6 @@ inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 	pte_t *pte;
 
 	printk("XXXXXXXXXXX pgtbl %lx\t addr %lx\n", pgtbl, addr);
-	//printk("XXXXXXXXXXX va_pgtbl %lx\t pgd_index(addr) %lx\n", pa_to_va((void*)pgtbl), pgd_index(addr));
 	printk("XXXXXXXXXXX pgd: %p\t *pgd: %lx\n", pgd, *pgd);
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		return NULL;
@@ -194,12 +139,54 @@ inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
 		return NULL;
 	}
+	if (pmd_large(*pmd)) {
+	  printk("XXXXXXXXXXX Big page son!\n");
+	  return (pte_t *)pmd;
+	}
 	pte = pte_offset_kernel(pmd, addr);
 	printk("XXXXXXXXXXX pte: %p\t *pte: %lx\n", pte, *pte);
-	if (!pte)
-	        return NULL;
-	//return pte;
 	return pte;
+}
+
+/*
+ * Find the corresponding pte for the address and return its virtual
+ * address.  Mainly a debugging tool to see if we are setting up the
+ * correct page mappings, but also used to set characteristics in all
+ * pages.
+ */
+// TODO: This is almost identical to pgtbl_lookup_address, may be able to refactor -jcm
+inline pte_t *lookup_address_mm(struct mm_struct *mm, unsigned long addr)
+{
+	pgd_t *pgd = pgd_offset(mm, addr);
+	pud_t *pud;
+	pmd_t *pmd;
+	pte_t *pte;
+	
+	printk("WWWWWWWWWWW mm %lx\t addr %lx\n", mm, addr);
+	printk("WWWWWWWWWWW pgd: %p\t *pgd: %lx\n", pgd, *pgd);
+	//printk("WWWWWWWWWWW va_*pgd: %lx\n", __va(pgd));
+	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
+		printk("Failure in lookup_address_mm, pgd is bad.\n");	 
+		return NULL;
+	}
+	pud = pud_offset(pgd, addr);
+	printk("WWWWWWWWWWW pud: %p\t *pud: %lx\n", pud, *pud);
+	if (pud_none(*pud) || pud_bad(*pud)) {
+		printk("Failure in lookup_address_mm, pud is bad.\n");
+		return NULL;
+	}
+	pmd = pmd_offset(pud, addr);
+	printk("WWWWWWWWWWW pmd: %p\t *pmd: %lx\n", pmd, *pmd);
+	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
+		printk("Failure in lookup_address_mm, pmd is bad.\n");
+		return NULL;
+	}
+	if (pmd_large(*pmd)) {
+		printk("WWWWWWW Big page here!.\n");	        
+		return (pte_t *)pmd;
+	pte = pte_offset_kernel(pmd, addr);
+	printk("WWWWWWWWWWW pte: %p\t *pte: %lx\n", pte, *pte);
+        return pte;
 }
 
 /* 
@@ -208,41 +195,139 @@ inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
  */
 vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 {
-        unsigned long kaddr, james_test;
-	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
+	pte_t *pte = pgtbl_lookup_address(pgtbl, addr);
+	unsigned long kaddr;
+
+	if (!pte || !(pte_val(*pte) & _PAGE_PRESENT)) {
+		return 0;
+	}
+	
+	/*
+	 * 1) get the value in the pte
+	 * 2) map out the non-address values to get the physical address
+	 * 3) convert the physical address to the vaddr
+	 * 4) offset into that vaddr the appropriate amount from the addr arg.
+	 * 5) return value
+	 */
+
+	kaddr = (unsigned long)__va(pte_val(*pte) & PTE_MASK) + (~PAGE_MASK & addr);
+	return (vaddr_t)kaddr;
+}
+
+/****************************************************************************/
+#ifdef X86_64
+
+void pgtbl_print_path(paddr_t pgtbl, unsigned long addr)
+{
+  // TODO: fix -jcm
+	pgd_t *pt = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
+	pte_t *pe = pgtbl_lookup_address(pgtbl, addr);
+	
+	printk("cos: addr %x, pgd entry - %x, pte entry - %x\n", 
+	       (unsigned int)addr, (unsigned int)pgd_val(*pt), (unsigned int)pte_val(*pe));
+
+	return;
+}
+
+int pgtbl_add_entry(paddr_t pgtbl, unsigned long vaddr, unsigned long paddr)
+{
+  // TODO: Do I need to change this? Probably; intermediate levels may need to be allocated pages.
+	pte_t *pte = pgtbl_lookup_address(pgtbl, vaddr);
+
+	printk("You AAAHHHHHH? pgtbl: %lx\t vaddr: %lx\t paddr: %lx\n", pgtbl, vaddr, paddr);
+
+	if (!pte || pte_val(*pte) & _PAGE_PRESENT) {
+		return -1;
+	}
+	/*pte_val(*pte)*/
+	pte->pte = paddr | (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
+
+	return 0;
+}
+
+/*
+ * Ensures that the intermediate pages exist (pgd, pud).
+ * Does not fill in the pmd.
+ */
+pmd_t * pgtbl_fill_to_pmd(pgd_t *pgd, unsigned long vaddr) {
 	pud_t *pud;
 	pmd_t *pmd;
-	pte_t *pte;
+	void *page0, *page1;
 
-	printk("XXXXXXXXXXX pgd: %p\t *pgd: %lx\n", pgd, *pgd);
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
-		return 0;
+	  page0 = cos_alloc_page();
+	  if (!page0) {
+	    // error out
+	    goto err0;
+	  }
+	  pgd->pgd = (unsigned long)(__pa(page0)) | _PAGE_TABLE;
+	  if (pgd_none(*pgd) || pgd_bad(*pgd)) {
+	    // error out and free page
+	    goto err1;
+	  }
 	}
-	pud = pud_offset(pgd, addr);
-	printk("XXXXXXXXXXX pud: %p\t *pud: %lx\n", pud, *pud);
+	pud = pud_offset(pgd, vaddr);
 	if (pud_none(*pud) || pud_bad(*pud)) {
-		return 0;
+	  page1 = cos_alloc_page();
+	  pud->pud = (unsigned long)(__pa(page1)) | _PAGE_TABLE;
+	  if (pud_none(*pud) || pud_bad(*pud)) {
+	    // error out and free both pages
+	    goto err2;
+	  }
 	}
-	pmd = pmd_offset(pud, addr);
-	printk("XXXXXXXXXXX pmd: %p\t *pmd: %lx\n", pmd, *pmd);
-	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
-		return 0;
-	}
-	pte = pte_offset_kernel(pmd, addr);
-	printk("XXXXXXXXXXX pte: %p\t *pte: %lx\n", pte, *pte);
-	if (!pte || !(pte_val(*pte) & _PAGE_PRESENT)) {
- 	        printk("ERROR in pgtbl_vaddr_to_kaddr\n");
-		return 0;
-	}
-	kaddr = (unsigned long)__va(pte_val(*pte) & PTE_MASK) + (~PAGE_MASK & addr);
+	pmd = pmd_offset(pud, vaddr);
 
-	return (vaddr_t)kaddr;
+ done:
+	return pmd;
+ err2:
+	cos_free_page(page1);
+ err1:
+	cos_free_page(page0);
+ err0:
+	pmd = NULL;
+	goto done;
+}
+
+/* allocate and link in a page middle directory */
+int pgtbl_add_middledir(paddr_t pt, unsigned long vaddr)
+{
+	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(vaddr);
+	pmd_t *pmd;
+	unsigned long *page;
+
+	page = cos_alloc_page(); /* zeroed */
+	if (!page) return -1;
+
+	pmd = pgtbl_fill_to_pmd(pgd, vaddr);
+	if (pmd == NULL) return -1;
+	
+	pmd->pmd = (unsigned long)va_to_pa(page) | _PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED;
+	return 0;
+}
+
+// TODO: add error checking, and consider clearing empty pud and pgd pages -jcm
+int pgtbl_rem_middledir(paddr_t pt, unsigned long vaddr)
+{
+	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(vaddr);
+	pud_t *pud;
+	pmd_t *pmd;
+	unsigned long *page;
+
+	pud = pud_offset(pgd, vaddr);
+	pmd = pmd_offset(pud, vaddr);
+
+	page = (unsigned long *)pa_to_va((void*)(pgd->pgd & PTE_PFN_MASK));
+	pmd->pmd = 0;
+	cos_free_page(page);
+
+	return 0;
 }
 
 /*
  * Verify that the given address in the page table is present.  Return
  * 0 if present, 1 if not.  *This will check the pgd, not for the pte.*
  */
+// HERE> THIS NEEDS TO BE UPDATED. -jcm
 int pgtbl_entry_absent(paddr_t pt, unsigned long addr)
 {
 	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(addr);
@@ -277,6 +362,26 @@ void print_valid_pgtbl_entries(paddr_t pt)
 	printk("\ncos: %d valid addresses.\n", n-1);
 
 	return;
+}
+
+/* FIXME: change to clone_pgd_range */
+// TODO: This needs to be fixed for x86_64 -jcm
+inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
+				  unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = pgd_offset(to_mm, lower_addr);
+	pgd_t *fpgd = pgd_offset(from_mm, lower_addr);
+	unsigned int span = hpage_index(size);
+
+#ifdef NIL
+	if (!(pgd_val(*fpgd) & _PAGE_PRESENT)) {
+		printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
+		       from_mm, (unsigned int)lower_addr);
+	}
+#endif
+
+	/* sizeof(pgd entry) is intended */
+	memcpy(tpgd, fpgd, span*sizeof(unsigned int)); // TODO: Definately not correct -jcm
 }
 
 void zero_pgtbl_range(paddr_t pt, unsigned long lower_addr, unsigned long size)
@@ -351,26 +456,6 @@ void copy_pgtbl(paddr_t pt_to, paddr_t pt_from)
 
 #else /* x86_32 implementation */
 
-/* returns the page table entry */
-unsigned long
-__pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
-{
-	pte_t *pte;
-
-	pte = pgtbl_lookup_address(pgtbl, addr);
-	if (!pte) return 0;
-	return pte->pte;
-}
-
-/* returns the page table entry */
-void
-__pgtbl_or_pgd(paddr_t pgtbl, unsigned long addr, unsigned long val)
-{
-	pgd_t *pt = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
-
-	pt->pgd = pgd_val(*pt) | val;
-}
-
 void pgtbl_print_path(paddr_t pgtbl, unsigned long addr)
 {
 	pgd_t *pt = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
@@ -386,8 +471,6 @@ int pgtbl_add_entry(paddr_t pgtbl, unsigned long vaddr, unsigned long paddr)
 {
 	pte_t *pte = pgtbl_lookup_address(pgtbl, vaddr);
 
-	printk("You AAAHHHHHH? pgtbl: %lx\t vaddr: %lx\t paddr: %lx\n", pgtbl, vaddr, paddr);
-
 	if (!pte || pte_val(*pte) & _PAGE_PRESENT) {
 		return -1;
 	}
@@ -395,6 +478,12 @@ int pgtbl_add_entry(paddr_t pgtbl, unsigned long vaddr, unsigned long paddr)
 	pte->pte = paddr | (_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
 
 	return 0;
+}
+
+// TODO: I'm going to need to figure something out for this.
+// It's not needed in x86_32
+pmd_t* pgtbl_fill_to_pmd(pgd_t *pgd, unsigned long vaddr) {
+  return NULL:
 }
 
 /* allocate and link in a page middle directory */
@@ -424,55 +513,6 @@ int pgtbl_rem_middledir(paddr_t pt, unsigned long vaddr)
 	return 0;
 }
 
-int pgtbl_rem_middledir_range(paddr_t pt, unsigned long vaddr, long size)
-{
-	unsigned long a;
-
-	for (a = vaddr ; a < vaddr + size ; a += HPAGE_SIZE) {
-		BUG_ON(pgtbl_rem_middledir(pt, a));
-	}
-	return 0;
-}
-
-int pgtbl_add_middledir_range(paddr_t pt, unsigned long vaddr, long size)
-{
-	unsigned long a;
-
-	for (a = vaddr ; a < vaddr + size ; a += HPAGE_SIZE) {
-		if (pgtbl_add_middledir(pt, a)) {
-			pgtbl_rem_middledir_range(pt, vaddr, a-vaddr);
-			return -1;
-		}
-	}
-	return 0;
-}
-
-/*
- * Remove a given virtual mapping from a page table.  Return 0 if
- * there is no present mapping, and the physical address mapped if
- * there is an existant mapping.
- */
-paddr_t pgtbl_rem_ret(paddr_t pgtbl, vaddr_t va)
-{
-	pte_t *pte = pgtbl_lookup_address(pgtbl, va);
-	paddr_t val;
-
-	if (!pte || !(pte_val(*pte) & _PAGE_PRESENT)) {
-		return 0;
-	}
-	val = (paddr_t)(pte_val(*pte) & PTE_MASK);
-	pte->pte = 0;
-
-	return val;
-}
-
-/*
-unsigned long *pgtbl_module_to_vaddr(unsigned long addr)
-{
-	return (unsigned long *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), addr);
-}
-*/
-
 inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 {
 	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pgtbl)) + pgd_index(addr);
@@ -495,29 +535,134 @@ inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
         return pte_offset_kernel(pmd, addr);
 }
 
-/* 
- * This won't work to find the translation for the argument region as
- * __va doesn't work on module-mapped memory. 
+/*
+ * Verify that the given address in the page table is present.  Return
+ * 0 if present, 1 if not.  *This will check the pgd, not for the pte.*
  */
-vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
+int pgtbl_entry_absent(paddr_t pt, unsigned long addr)
 {
-	pte_t *pte = pgtbl_lookup_address(pgtbl, addr);
-	unsigned long kaddr;
+	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(addr);
 
-	if (!pte || !(pte_val(*pte) & _PAGE_PRESENT)) {
-		return 0;
+	return !((pgd_val(*pgd)) & _PAGE_PRESENT);
+}
+
+/* Find the nth valid pgd entry */
+unsigned long get_valid_pgtbl_entry(paddr_t pt, int n)
+{
+	int i;
+
+	for (i = 1 ; i < PTRS_PER_PGD ; i++) {
+		if (!pgtbl_entry_absent(pt, i*PGDIR_SIZE)) {
+			n--;
+			if (n == 0) {
+				return i*PGDIR_SIZE;
+			}
+		}
 	}
-	
-	/*
-	 * 1) get the value in the pte
-	 * 2) map out the non-address values to get the physical address
-	 * 3) convert the physical address to the vaddr
-	 * 4) offset into that vaddr the appropriate amount from the addr arg.
-	 * 5) return value
-	 */
+	return 0;
+}
 
-	kaddr = (unsigned long)__va(pte_val(*pte) & PTE_MASK) + (~PAGE_MASK & addr);
-	return (vaddr_t)kaddr;
+void print_valid_pgtbl_entries(paddr_t pt) 
+{
+	int n = 1;
+	unsigned long ret;
+	printk("cos: valid pgd addresses:\ncos: ");
+	while ((ret = get_valid_pgtbl_entry(pt, n++)) != 0) {
+		printk("%lx\t", ret);
+	}
+	printk("\ncos: %d valid addresses.\n", n-1);
+
+	return;
+}
+
+/* FIXME: change to clone_pgd_range */
+// TODO: This needs to be fixed for x86_64 -jcm
+static inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
+				  unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = pgd_offset(to_mm, lower_addr);
+	pgd_t *fpgd = pgd_offset(from_mm, lower_addr);
+	unsigned int span = hpage_index(size);
+
+#ifdef NIL
+	if (!(pgd_val(*fpgd) & _PAGE_PRESENT)) {
+		printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
+		       from_mm, (unsigned int)lower_addr);
+	}
+#endif
+
+	/* sizeof(pgd entry) is intended */
+	memcpy(tpgd, fpgd, span*sizeof(unsigned int)); // TODO: Definately not correct -jcm
+}
+
+void zero_pgtbl_range(paddr_t pt, unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(lower_addr);
+	unsigned int span = hpage_index(size);
+
+	if (!(pgd_val(*pgd)) & _PAGE_PRESENT) {
+		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
+		       (unsigned int)lower_addr);
+	}
+
+	/* sizeof(pgd entry) is intended */
+	memset(pgd, 0, span*sizeof(pgd_t));
+}
+
+void copy_pgtbl_range(paddr_t pt_to, paddr_t pt_from, 
+		      unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
+	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
+	unsigned int span = hpage_index(size);
+
+	printk("Here I go, again on my own: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
+
+	if (!(pgd_val(*fpgd)) & _PAGE_PRESENT) {
+		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
+		       (unsigned int)lower_addr);
+	}
+
+	/* sizeof(pgd entry) is intended */
+	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
+}
+
+void copy_pgtbl_range_nocheck(paddr_t pt_to, paddr_t pt_from, 
+			      unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
+	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
+	unsigned int span = hpage_index(size);
+
+	printk("Here I go, no check!: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
+
+	/* sizeof(pgd entry) is intended */
+	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
+}
+
+/* Copy pages non-empty in from, and empty in to */
+void copy_pgtbl_range_nonzero(paddr_t pt_to, paddr_t pt_from, 
+			      unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
+	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
+	unsigned int span = hpage_index(size);
+	int i;
+
+	printk("Copying from %p:%d to %p.\n", fpgd, span, tpgd);
+
+	/* sizeof(pgd entry) is intended */
+	for (i = 0 ; i < span ; i++) {
+		if (!(pgd_val(tpgd[i]) & _PAGE_PRESENT)) {
+			if (pgd_val(fpgd[i]) & _PAGE_PRESENT) printk("\tcopying vaddr %lx.\n", lower_addr + i * HPAGE_SHIFT);
+			memcpy(&tpgd[i], &fpgd[i], sizeof(pgd_t));
+		}
+	}
+}
+
+void copy_pgtbl(paddr_t pt_to, paddr_t pt_from)
+{
+	copy_pgtbl_range_nocheck(pt_to, pt_from, 0, 0xFFFFFFFF);
 }
 
 #endif /* X86_64 */

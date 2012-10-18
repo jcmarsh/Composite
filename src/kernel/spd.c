@@ -518,6 +518,7 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 extern int pgtbl_add_middledir_range(paddr_t pt, unsigned long vaddr, long size);
 extern int pgtbl_rem_middledir_range(paddr_t pt, unsigned long vaddr, long size);
 
+// TODO: This must be updated -jcm
 int spd_add_location(struct spd *spd, long base, long size)
 {
 	int ret = 0;
