@@ -14,8 +14,14 @@
 #include <signal.h>
 #include <time.h>
 
-#define rdtscll(val) \
-        __asm__ __volatile__("rdtsc" : "=A" (val))
+#ifdef X86_64
+#define rdtscll(value)				       \
+  __asm__ ("rdtsc\n\t"				       \
+	   "shl $(32), %%rdx\n\t"		       \
+	   "or %%rax, %%rdx" : "=d" (value) : : "rax")
+#else
+#define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
+#endif /* X86_64 */
 
 unsigned long long max = 0, min = (unsigned long long)-1, tot = 0, cnt = 0;
 int rcv = 0;

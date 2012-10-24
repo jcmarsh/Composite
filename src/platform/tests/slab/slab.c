@@ -33,7 +33,14 @@ void chk(char *c, int sz, char val)
 	} 
 }
 
+#ifdef X86_64
+#define rdtscll(value)				       \
+  __asm__ ("rdtsc\n\t"				       \
+	   "shl $(32), %%rdx\n\t"		       \
+	   "or %%rax, %%rdx" : "=d" (value) : : "rax")
+#else
 #define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
+#endif /* X86_64 */
 
 int main(void)
 {

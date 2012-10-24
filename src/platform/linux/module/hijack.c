@@ -578,7 +578,7 @@ static int syscalls_enabled = 1;
 
 extern int virtual_namespace_alloc(struct spd *spd, unsigned long addr, unsigned int size);
 //extern int copy_mm(unsigned long clone_flags, struct task_struct * tsk);
-void print_valid_pgtbl_entries(paddr_t pt);
+//void print_valid_pgtbl_entries(paddr_t pt);
 extern struct thread *ready_boot_thread(struct spd *init);
 
 static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
@@ -658,6 +658,8 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 			copy_pgd_range(mm, current->mm, spd_info.lowest_addr, spd_info.size);
 			copy_pgd_range(mm, current->mm, COS_INFO_REGION_ADDR, PGD_RANGE);
+			
+			printk("ALALALALALALALALALALALALALALALALALALALALA\n");
 
 			cspd = spd_alloc_mpd();
 			if (!cspd) {
@@ -667,6 +669,8 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				return -1;
 			}
 
+			printk("ALALALALALALALALALALALALALALALALALALALALA\n");
+
 			spd_set_location(spd, spd_info.lowest_addr, spd_info.size, (paddr_t)(__pa(mm->pgd)));
 
 			if (spd_composite_add_member(cspd, spd)) {
@@ -675,6 +679,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				return -1;
 			}
 
+			printk("ALALALALALALALALALALALALALALALALALALALALA\n");
 			spd->pfn_base   = 0;
 			spd->pfn_extent = COS_MAX_MEMORY;
 /*
@@ -685,11 +690,12 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 */
 #ifdef NIL
 			/* To check the integrity of the created page table: */
-			void print_valid_pgtbl_entries(paddr_t pt);
-			print_valid_pgtbl_entries(spd->composite_spd->pg_tbl);
+			//void print_valid_pgtbl_entries(paddr_t pt);
+			//print_valid_pgtbl_entries(spd->composite_spd->pg_tbl);
 #endif
 		}
 
+		printk("ALALALALALALALALALALALALALALALALALALALALA Goodbye\n");
 		return spd_get_index(spd);
 	}
 	case AED_SPD_ADD_CAP:

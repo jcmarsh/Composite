@@ -1970,6 +1970,8 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 	struct cos_component_information *ci;
 	int i;
 
+	printl(PRINT_DEBUG, "CREATE_SPD:0\n");
+
 	assert(!is_booter_loaded(s));
 	spd = (struct spd_info *)malloc(sizeof(struct spd_info));
 	if (NULL == spd) {
@@ -1977,6 +1979,7 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 		return NULL;
 	}
 
+	printl(PRINT_DEBUG, "CREATE_SPD:1\n");
 	ci = (void*)get_symb_address(&s->exported, COMP_INFO);
 	if (ci == NULL) {
 		printl(PRINT_DEBUG, "Could not find %s in %s.\n", COMP_INFO, s->obj);
@@ -1987,6 +1990,7 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 	heap_ptr    = (long*)&ci->cos_heap_ptr;
 	ucap_tbl    = (struct usr_inv_cap*)ci->cos_user_caps;
 	
+	printl(PRINT_DEBUG, "CREATE_SPD:2\n");
 	for (i = 0 ; i < NUM_ATOMIC_SYMBS ; i++) {
 		if (i % 2 == 0) {
 			spd->atomic_regions[i] = ci->cos_ras[i/2].start;
@@ -1995,20 +1999,24 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 		}
 	}
 	
+	printl(PRINT_DEBUG, "CREATE_SPD:3\n");
 	spd->num_caps = s->undef.num_symbs;
 	spd->ucap_tbl = (vaddr_t)ucap_tbl;
 	spd->lowest_addr = lowest_addr;
 	spd->size = size;
 	spd->upcall_entry = upcall_addr;
 
-	spdid_inc++;
+	printl(PRINT_DEBUG, "CREATE_SPD:4\n");
+	spdid_inc++; // ERROR IN HERE -jcm
 	spd->spd_handle = cos_create_spd(cos_fd, spd);
+	printl(PRINT_DEBUG, "CREATE_SPD:5\n");
 	assert(spdid_inc == spd->spd_handle);
 	if (spd->spd_handle < 0) {
 		printl(PRINT_DEBUG, "Could not create spd %s\n", s->obj);
 		free(spd);
 		return NULL;
 	}
+	printl(PRINT_DEBUG, "CREATE_SPD:6\n");
 	printl(PRINT_HIGH, "spd %s, id %d with initialization string \"%s\" @ %x.\n", 
 	       s->obj, (unsigned int)spd->spd_handle, s->init_str, (unsigned int)spd->lowest_addr);
 	*spd_id_addr = spd->spd_handle;
@@ -2022,9 +2030,11 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 		printl(PRINT_DEBUG, "\tFound %s address for component %s @ %x.\n", 
 		       ATOMIC_USER_DEF[i], s->obj, (unsigned int)spd->atomic_regions[i]);
 	}
+	printl(PRINT_DEBUG, "Done printing addresses for components\n");
 
 	s->extern_info = spd;
 
+	printl(PRINT_DEBUG, "Done printing addresses for components\n");
 	return spd;
 }
 
@@ -2634,9 +2644,11 @@ static void setup_kernel(struct service_symbs *services)
 		struct service_symbs *t;
 		struct spd_info *t_spd;
 
+		printl(PRINT_DEBUG, "s: %p\n", s);
+		printl(PRINT_DEBUG, "s->obj %p\n", s->obj);
 		t = s;
 		if (!is_booter_loaded(s)) {
-			if (strstr(s->obj, INIT_COMP) != NULL) {
+ 		        if (strstr(s->obj, INIT_COMP) != NULL) { // ERROR IS NEARBY -jcm
 				init = t;
 				t_spd = init_spd = create_spd(cntl_fd, init, 0, 0);
 			} else {
@@ -2647,8 +2659,10 @@ static void setup_kernel(struct service_symbs *services)
 				exit(-1);
 			}
 		}
+		printl(PRINT_DEBUG, "s->next: %p\n", s->next);
 		s = s->next;
 	}
+	printl(PRINT_DEBUG, "Service Objects done.\n"); // -jcm
 
 	s = services;
 	while (s) {
@@ -2661,6 +2675,7 @@ static void setup_kernel(struct service_symbs *services)
 
 		s = s->next;
 	}
+	printl(PRINT_DEBUG, "Stubs done.\n"); // -jcm
 	printl(PRINT_DEBUG, "\n");
 
 	/* if ((m = find_obj_by_name(services, INITMM)) == NULL) { */
@@ -2682,12 +2697,14 @@ static void setup_kernel(struct service_symbs *services)
 	if ((s = find_obj_by_name(services, BOOT_COMP))) {
 		make_spd_boot(s, services);
 	}
+	printl(PRINT_DEBUG, "JCM ALPHA\n");
 	fflush(stdout);
 
 	if ((s = find_obj_by_name(services, LLBOOT_COMP))) {
 		make_spd_llboot(s, services);
 		make_spd_scheduler(cntl_fd, s, NULL);
 	} 
+	printl(PRINT_DEBUG, "JCM BETA\n");
 	fflush(stdout);
 	thd.sched_handle = ((struct spd_info *)s->extern_info)->spd_handle;
 
@@ -2718,7 +2735,14 @@ static void setup_kernel(struct service_symbs *services)
 	fn = (int (*)(void))get_symb_address(&s->exported, "spd0_main");
 
 #define ITER 1
+#ifdef X86_64
+#define rdtscll(value)				       \
+  __asm__ ("rdtsc\n\t"				       \
+	   "shl $(32), %%rdx\n\t"		       \
+	   "or %%rax, %%rdx" : "=d" (value) : : "rax")
+#else
 #define rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
+#endif /* X86_64 */
 
 	/* This will hopefully avoid hugely annoying fsck runs */
 	sync();
@@ -2951,7 +2975,7 @@ int main(int argc, char *argv[])
 		goto dealloc_exit;
 	}
 
-//	print_kern_symbs(services);
+	print_kern_symbs(services);
 
 	setup_kernel(services);
 

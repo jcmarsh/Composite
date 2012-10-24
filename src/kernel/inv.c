@@ -3255,6 +3255,7 @@ copy_pgtbl_range(paddr_t pt_to, paddr_t pt_from,
  * page-tables if the mapping is not present in the composite, but is
  * in the master.
  */
+// AAAAAHHHHHHHHHH!!!!!!!!!!!! -jcm
 int 
 fault_update_mpd_pgtbl(struct thread *thd, struct pt_regs *regs, vaddr_t fault_addr)
 {
@@ -3411,6 +3412,7 @@ cos_syscall_spd_cntl(int id, int op_spdid, long arg1, long arg2)
 	{
 		paddr_t pa;
 
+		printk("About to create an SPD SON!\n");
 		pa = spd_alloc_pgtbl();
 		if (0 == pa) {
 			ret = -1;

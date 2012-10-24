@@ -28,6 +28,7 @@ vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr);
 // Arch. Dependent
 void pgtbl_print_path(paddr_t pgtbl, unsigned long addr);
 int pgtbl_add_entry(paddr_t pgtbl, unsigned long vaddr, unsigned long paddr);
+pte_t* pgtbl_fill_to_pte(pgd_t *pgd, unsigned long vaddr);
 pmd_t* pgtbl_fill_to_pmd(pgd_t *pgd, unsigned long vaddr);
 int pgtbl_add_middledir(paddr_t pt, unsigned long vaddr);
 int pgtbl_rem_middledir(paddr_t pt, unsigned long vaddr);

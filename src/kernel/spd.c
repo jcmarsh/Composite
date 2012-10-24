@@ -800,7 +800,7 @@ paddr_t spd_alloc_pgtbl(void)
 	struct page_list *page;
 	paddr_t pp;
 
-	printk("Bow down before the one you serve... spd.c:spd_alloc_pgtbl");
+	printk("Bow down before the one you serve... spd.c:spd_alloc_pgtbl\n");
 
 	page = cos_get_pg_pool();
 	if (NULL == page) return 0;
@@ -817,8 +817,8 @@ paddr_t spd_alloc_pgtbl(void)
 	 *
 	 * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
 	 */
-	/// TODO: what is this? 0xFFFFFFFF? -jcm
-	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0xFFFFFFFF);
+	/// TODO: what is this? 0xFFFFFFFF? Will try less space -jcm
+	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0x0FFFFFFF);
 	assert(!pgtbl_entry_absent(pp, COS_INFO_REGION_ADDR));
 
 	return pp;
