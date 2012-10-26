@@ -150,7 +150,7 @@ static inline int aed_open_cntl_fd()
 static inline int cos_create_spd(int cntl_fd, struct spd_info *spdi)
 {
 	int ret;
-	printf("HOLA!\n");
+	printf("HOLA! cntl_fd: %x\t spdi: %p\n", cntl_fd, spdi);
 	if ((ret = ioctl(cntl_fd, AED_CREATE_SPD, spdi)) < 0) {
 		perror("Could not create spd\n");
 		printf("ioctl returned %d\n", ret);

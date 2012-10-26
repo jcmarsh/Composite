@@ -43,9 +43,9 @@ void cos_free_page(void *page)
 }
 
 // TODO: Double check this -jcm 
-inline unsigned int hpage_index(unsigned long n)
+inline unsigned long hpage_index(unsigned long n)
 {
-        unsigned int idx = n >> HPAGE_SHIFT;
+        unsigned long idx = n >> HPAGE_SHIFT;
         return (idx << HPAGE_SHIFT) != n ? idx + 1 : idx;
 }
 
@@ -144,6 +144,9 @@ inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 	  return (pte_t *)pmd;
 	}
 	pte = pte_offset_kernel(pmd, addr);
+	if (pte_none(*pte)) {
+	  printk("Well, that explains it. I didn't know it was possible.\n");
+	}
 	printk("XXXXXXXXXXX pte: %p\t *pte: %lx\n", pte, *pte);
 	return pte;
 }
@@ -198,7 +201,10 @@ vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 {
 	pte_t *pte = pgtbl_lookup_address(pgtbl, addr);
 	unsigned long kaddr;
+	vaddr_t *kaddrv;
+	unsigned long *kaddrp;
 
+	printk("SANITY CHECK.\n");
 	if (!pte || !(pte_val(*pte) & _PAGE_PRESENT)) {
 		return 0;
 	}
@@ -211,8 +217,111 @@ vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 	 * 5) return value
 	 */
 
+	printk("\t*pte: %lx\t, pte_val: %lx\n", *pte, pte_val(*pte));
+	printk("\t MASKS, PTE: %lx, PAGE: %lx\n", PTE_MASK, PAGE_MASK);
+
 	kaddr = (unsigned long)__va(pte_val(*pte) & PTE_MASK) + (~PAGE_MASK & addr);
+	printk("\t kaddr: %lx\n", kaddr);
+	kaddrv = (vaddr_t)kaddr;
+	printk("\t kaddrv: %lx\n", kaddrv);
+	kaddrp = (unsigned long *)kaddrv;
+	printk("\t kaddrp: %lx\n", kaddrv);
+
 	return (vaddr_t)kaddr;
+}
+
+////////////////////////////////////////////////////////////////////////
+/* FIXME: change to clone_pgd_range */
+inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
+				  unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = pgd_offset(to_mm, lower_addr);
+	pgd_t *fpgd = pgd_offset(from_mm, lower_addr);
+	unsigned long span = hpage_index(size);
+
+	//#ifdef NIL
+	if (!(pgd_val(*fpgd) & _PAGE_PRESENT)) {
+		printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
+		       from_mm, (unsigned int)lower_addr);
+	}
+	//#endif
+
+	/* sizeof(pgd entry) is intended */
+	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
+}
+
+void zero_pgtbl_range(paddr_t pt, unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(lower_addr);
+	unsigned long span = hpage_index(size);
+
+	if (!(pgd_val(*pgd)) & _PAGE_PRESENT) {
+		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
+		       (unsigned int)lower_addr);
+	}
+
+	/* sizeof(pgd entry) is intended */
+	memset(pgd, 0, span*sizeof(pgd_t));
+}
+
+void copy_pgtbl_range(paddr_t pt_to, paddr_t pt_from, 
+		      unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
+	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
+	unsigned long span = hpage_index(size);
+
+	printk("Here I go, again on my own: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
+
+	if (!(pgd_val(*fpgd)) & _PAGE_PRESENT) {
+		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
+		       (unsigned int)lower_addr);
+	}
+
+	/* sizeof(pgd entry) is intended */
+	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
+}
+
+void copy_pgtbl_range_nocheck(paddr_t pt_to, paddr_t pt_from, 
+			      unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
+	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
+	unsigned long span = hpage_index(size);
+
+	printk("Here I go, no check!: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
+	printk("Size: %lx", span);
+
+	/* sizeof(pgd entry) is intended */
+	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
+}
+
+/* Copy pages non-empty in from, and empty in to */
+void copy_pgtbl_range_nonzero(paddr_t pt_to, paddr_t pt_from, 
+			      unsigned long lower_addr, unsigned long size)
+{
+	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
+	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
+	unsigned long span = hpage_index(size);
+	unsigned long i; // TODO: Shouldn't need to be... 
+	// TODO: Crap. Fix hpage_index.
+
+
+	printk("Copying from %p:%d to %p.\n", fpgd, span, tpgd);
+
+	/* sizeof(pgd entry) is intended */
+	for (i = 0 ; i < span ; i++) {
+		if (!(pgd_val(tpgd[i]) & _PAGE_PRESENT)) {
+			if (pgd_val(fpgd[i]) & _PAGE_PRESENT) printk("\tcopying vaddr %lx.\n", lower_addr + i * HPAGE_SHIFT);
+			memcpy(&tpgd[i], &fpgd[i], sizeof(pgd_t));
+		}
+	}
+}
+
+void copy_pgtbl(paddr_t pt_to, paddr_t pt_from)
+{
+  //	copy_pgtbl_range_nocheck(pt_to, pt_from, 0, 0xFFFFFFFF);
+  	copy_pgtbl_range_nocheck(pt_to, pt_from, 0, 0x3FFFFFFF);
 }
 
 /****************************************************************************/
@@ -422,140 +531,6 @@ void print_valid_pgtbl_entries(paddr_t pt)
 	return;
 }
 
-/* FIXME: change to clone_pgd_range */
-// TODO: This needs to be fixed. And tested. And have error checking -jcm
-inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
-				  unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = pgd_offset(to_mm, lower_addr);
-	pmd_t *tpmd;
-	pgd_t *fpgd = pgd_offset(from_mm, lower_addr);
-	pud_t *fpud;
-	pmd_t *fpmd;
-	unsigned int span = hpage_index(size);
-	void* ret_val;
-
-	tpmd = pgtbl_fill_to_pmd(tpgd, lower_addr);
-	
-	fpud = pud_offset(fpgd, lower_addr);
-	fpmd = pmd_offset(fpud, lower_addr);
-
-#ifdef NIL
-	if (!(pgd_val(*fpgd) & _PAGE_PRESENT)) {
-		printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
-		       from_mm, (unsigned int)lower_addr);
-	}
-#endif
-
-	/* sizeof(pgd entry) is intended */
-	ret_val = memcpy(tpmd, fpmd, span*sizeof(pmd_t));
-	printk("copy_pgd_range result: %p\n", ret_val);
-}
-
-// TODO: Check and test, and then add error checking -jcm
-void zero_pgtbl_range(paddr_t pt, unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(lower_addr);
-	pud_t *pud;
-	pmd_t *pmd;
-	unsigned int span = hpage_index(size);
-	void* ret_val;
-
-	pud = pud_offset(pgd, lower_addr);
-	pmd = pmd_offset(pud, lower_addr);
-
-	/* Fix and uncomment -jcm
-	if (!(pgd_val(*pgd)) & _PAGE_PRESENT) {
-		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
-		       (unsigned int)lower_addr);
-		       } */
-
-	/* sizeof(pgd entry) is intended */
-	ret_val = memset(pmd, 0, span*sizeof(pmd_t));
-	printk("zero_pgd_range result: %p\n", ret_val);
-}
-
-// Fix, test, and add error checking -jcm
-void copy_pgtbl_range(paddr_t pt_to, paddr_t pt_from, 
-		      unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
-	pmd_t *tpmd;
-	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
-	pud_t *fpud;
-	pmd_t *fpmd;
-	unsigned int span = hpage_index(size);
-	void *ret_val;
-
-	printk("Here I go, again on my own: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
-
-	tpmd = pgtbl_fill_to_pmd(tpgd, lower_addr);
-	
-	fpud = pud_offset(fpgd, lower_addr);
-	fpmd = pmd_offset(fpud, lower_addr);
-
-	/* TODO: Fix and uncomment
-	if (!(pgd_val(*fpgd)) & _PAGE_PRESENT) {
-		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
-		       (unsigned int)lower_addr);
-		       } */
-
-	/* sizeof(pgd entry) is intended */
-	ret_val = memcpy(tpmd, fpmd, span*sizeof(pmd_t));
-	printk("copy_pgtbl_range result: %p\n", ret_val);
-}
-
-void copy_pgtbl_range_nocheck(paddr_t pt_to, paddr_t pt_from, 
-			      unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
-	pmd_t *tpmd;
-	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
-	pud_t *fpud;
-	pmd_t *fpmd;
-	unsigned int span = hpage_index(size);
-	void *ret_val;
-
-	tpmd = pgtbl_fill_to_pmd(tpgd, lower_addr);
-	
-	fpud = pud_offset(fpgd, lower_addr);
-	fpmd = pmd_offset(fpud, lower_addr);
-
-	printk("Here I go, no check!: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
-
-	/* sizeof(pgd entry) is intended */
-	ret_val = memcpy(tpmd, fpmd, span*sizeof(pmd_t));
-	printk("copy_pgd_range result: %p\n", ret_val);
-}
-
-/* Copy pages non-empty in from, and empty in to */
-// TODO: convert to x86_64 -jcm
-void copy_pgtbl_range_nonzero(paddr_t pt_to, paddr_t pt_from, 
-			      unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
-	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
-	unsigned int span = hpage_index(size);
-	int i;
-
-	printk("NOOOOOOOOOOOOOOOOOOOOOOO. copy_pgtbl_range_nonzero\n");
-	printk("Copying from %p:%d to %p.\n", fpgd, span, tpgd);
-
-	/* sizeof(pgd entry) is intended */
-	for (i = 0 ; i < span ; i++) {
-		if (!(pgd_val(tpgd[i]) & _PAGE_PRESENT)) {
-			if (pgd_val(fpgd[i]) & _PAGE_PRESENT) printk("\tcopying vaddr %lx.\n", lower_addr + i * HPAGE_SHIFT);
-			memcpy(&tpgd[i], &fpgd[i], sizeof(pgd_t));
-		}
-	}
-}
-
-void copy_pgtbl(paddr_t pt_to, paddr_t pt_from)
-{
-        printk("This is bad, mmmkay? copy_pgtbl\n");
-        copy_pgtbl_range_nocheck(pt_to, pt_from, 0, 0xFFFFFFFF); // Change to 0xFFFFFFFFFFFFFFFF? -jcm
-}
-
 #else /* x86_32 implementation */
 
 void pgtbl_print_path(paddr_t pgtbl, unsigned long addr)
@@ -676,95 +651,4 @@ void print_valid_pgtbl_entries(paddr_t pt)
 
 	return;
 }
-
-/* FIXME: change to clone_pgd_range */
-// TODO: This needs to be fixed for x86_64 -jcm
-static inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
-				  unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = pgd_offset(to_mm, lower_addr);
-	pgd_t *fpgd = pgd_offset(from_mm, lower_addr);
-	unsigned int span = hpage_index(size);
-
-#ifdef NIL
-	if (!(pgd_val(*fpgd) & _PAGE_PRESENT)) {
-		printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
-		       from_mm, (unsigned int)lower_addr);
-	}
-#endif
-
-	/* sizeof(pgd entry) is intended */
-	memcpy(tpgd, fpgd, span*sizeof(unsigned int)); // TODO: Definately not correct -jcm
-}
-
-void zero_pgtbl_range(paddr_t pt, unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *pgd = ((pgd_t *)pa_to_va((void*)pt)) + pgd_index(lower_addr);
-	unsigned int span = hpage_index(size);
-
-	if (!(pgd_val(*pgd)) & _PAGE_PRESENT) {
-		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
-		       (unsigned int)lower_addr);
-	}
-
-	/* sizeof(pgd entry) is intended */
-	memset(pgd, 0, span*sizeof(pgd_t));
-}
-
-void copy_pgtbl_range(paddr_t pt_to, paddr_t pt_from, 
-		      unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
-	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
-	unsigned int span = hpage_index(size);
-
-	printk("Here I go, again on my own: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
-
-	if (!(pgd_val(*fpgd)) & _PAGE_PRESENT) {
-		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 
-		       (unsigned int)lower_addr);
-	}
-
-	/* sizeof(pgd entry) is intended */
-	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
-}
-
-void copy_pgtbl_range_nocheck(paddr_t pt_to, paddr_t pt_from, 
-			      unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
-	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
-	unsigned int span = hpage_index(size);
-
-	printk("Here I go, no check!: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
-
-	/* sizeof(pgd entry) is intended */
-	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
-}
-
-/* Copy pages non-empty in from, and empty in to */
-void copy_pgtbl_range_nonzero(paddr_t pt_to, paddr_t pt_from, 
-			      unsigned long lower_addr, unsigned long size)
-{
-	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
-	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
-	unsigned int span = hpage_index(size);
-	int i;
-
-	printk("Copying from %p:%d to %p.\n", fpgd, span, tpgd);
-
-	/* sizeof(pgd entry) is intended */
-	for (i = 0 ; i < span ; i++) {
-		if (!(pgd_val(tpgd[i]) & _PAGE_PRESENT)) {
-			if (pgd_val(fpgd[i]) & _PAGE_PRESENT) printk("\tcopying vaddr %lx.\n", lower_addr + i * HPAGE_SHIFT);
-			memcpy(&tpgd[i], &fpgd[i], sizeof(pgd_t));
-		}
-	}
-}
-
-void copy_pgtbl(paddr_t pt_to, paddr_t pt_from)
-{
-	copy_pgtbl_range_nocheck(pt_to, pt_from, 0, 0xFFFFFFFF);
-}
-
 #endif /* X86_64 */

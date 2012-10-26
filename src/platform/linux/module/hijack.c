@@ -380,7 +380,7 @@ int spd_free_mm(struct spd *spd)
 {
 	struct mm_struct *mm;
 	pgd_t *pgd;
-	int span;
+	unsigned long span;
 
 	/* if the spd shares page tables with the creation program,
 	 * don't kill anything */
@@ -654,12 +654,22 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 			assert(spd == virtual_namespace_query(spd_info.lowest_addr+PAGE_SIZE));
 
-			printk("ALALALALALALALALALALALALALALALALALALALALA\n");
+			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
+			printk("\t spd_info.lowest: %x\t spd_info.size %x\n", spd_info.lowest_addr, spd_info.size);
+			printk("\t COS_INFO_REG_AD: %x\t PGD_RANGE     %x\n", COS_INFO_REGION_ADDR, PGD_RANGE);
+		
+			printk("****************************************************\n");
+			lookup_address_mm(mm, spd_info.lowest_addr);
+			lookup_address_mm(mm, COS_INFO_REGION_ADDR);
 
 			copy_pgd_range(mm, current->mm, spd_info.lowest_addr, spd_info.size);
 			copy_pgd_range(mm, current->mm, COS_INFO_REGION_ADDR, PGD_RANGE);
-			
-			printk("ALALALALALALALALALALALALALALALALALALALALA\n");
+
+			lookup_address_mm(mm, spd_info.lowest_addr);
+			lookup_address_mm(mm, COS_INFO_REGION_ADDR);	
+
+			printk("****************************************************\n");
+			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
 
 			cspd = spd_alloc_mpd();
 			if (!cspd) {
@@ -669,17 +679,18 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				return -1;
 			}
 
-			printk("ALALALALALALALALALALALALALALALALALALALALA\n");
-
+			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
+			printk("Here we are. 0\n");
+			// In here?
 			spd_set_location(spd, spd_info.lowest_addr, spd_info.size, (paddr_t)(__pa(mm->pgd)));
-
+			printk("Here we are. 1\n");
 			if (spd_composite_add_member(cspd, spd)) {
 				printk("cos: could not add spd %d to composite spd %d.\n",
 				       spd_get_index(spd), spd_mpd_index(cspd));
 				return -1;
 			}
-
-			printk("ALALALALALALALALALALALALALALALALALALALALA\n");
+			printk("Here we are. 2\n");
+			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
 			spd->pfn_base   = 0;
 			spd->pfn_extent = COS_MAX_MEMORY;
 /*
@@ -695,7 +706,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 #endif
 		}
 
-		printk("ALALALALALALALALALALALALALALALALALALALALA Goodbye\n");
+		printk("HALALALALALALALALALALALALALALALALALALALALA Goodbye\n");
 		return spd_get_index(spd);
 	}
 	case AED_SPD_ADD_CAP:

@@ -455,9 +455,16 @@ int pages_identical(unsigned long *addr1, unsigned long *addr2)
 {
 	unsigned long saved_val;
 
+	printk("\t\t addr1: %p\t *addr1: %lx\n", addr1, *addr1);
+	printk("\t\t addr2: %p\t *addr2: %lx\n", addr2, *addr2);
+
 	saved_val = *addr1;
 	if (*addr2 != saved_val) return 0;
 	*addr1 = 0xdeadbeef;
+
+	printk("\t\t addr1: %p\t *addr1: %lx\n", addr1, *addr1);
+	printk("\t\t addr2: %p\t *addr2: %lx\n", addr2, *addr2);
+
 	if (*addr2 != 0xdeadbeef) return 0;
 	*addr1 = saved_val;
 
@@ -482,6 +489,7 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 	assert(uaddr);
 	assert(NULL == spd->user_cap_tbl);
 	
+	printk("\tSPD.C SPD_SET_LOCATION\n");
 	if (uaddr < lowest_addr 
 	    || uaddr + sizeof(struct usr_inv_cap) * spd->cap_range > lowest_addr + size
 	    || !user_struct_fits_on_page((unsigned long)spd->user_vaddr_cap_tbl, 
@@ -491,6 +499,7 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 		return -1;
 	}
 
+	printk("\tSPD.C SPD_SET_LOCATION\n");
 	spd->spd_info.pg_tbl = pg_tbl;
 	spd->location[0].lowest_addr = lowest_addr;
 	spd->location[0].size = size;
@@ -506,12 +515,16 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 		       (unsigned long)spd->user_vaddr_cap_tbl, spd_get_index(spd));
 		return -1;
 	}
-
+	printk("\tSPD.C SPD_SET_LOCATION\n");
+	printk("\tSPD.C \t kaddr: %p\n", kaddr);
 	spd->user_cap_tbl = (struct usr_inv_cap *)kaddr;
 
-	assert(pages_identical((unsigned long*)spd->user_vaddr_cap_tbl,
-			       (unsigned long*)spd->user_cap_tbl));
-
+	printk("\tSPD.C \t vaddr_cap: %p\n", spd->user_vaddr_cap_tbl);
+	printk("\tSPD.C \t cap: %p\n", spd->user_cap_tbl);
+	//	assert(pages_identical((unsigned long*)spd->user_vaddr_cap_tbl,
+	//		       (unsigned long*)spd->user_cap_tbl));
+	printk("\tSPD.C SPD_SET_LOCATION\n");
+return -1;
 	return 0;
 }
 
@@ -805,6 +818,7 @@ paddr_t spd_alloc_pgtbl(void)
 	page = cos_get_pg_pool();
 	if (NULL == page) return 0;
 	pp = (paddr_t)va_to_pa(page);
+	printk("page: %p\t pp %lx\n", page, pp);
 
 	/* 
 	 * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
@@ -818,7 +832,9 @@ paddr_t spd_alloc_pgtbl(void)
 	 * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
 	 */
 	/// TODO: what is this? 0xFFFFFFFF? Will try less space -jcm
-	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0x0FFFFFFF);
+	//	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0xFFFFFFFF);
+	//	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0x0000FFFFFFFFFFFF);
+	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0x000000003FFFFFFF);
 	assert(!pgtbl_entry_absent(pp, COS_INFO_REGION_ADDR));
 
 	return pp;
@@ -851,6 +867,7 @@ short int spd_alloc_mpd_desc(void)
 	new->members = NULL;
 	spd_mpd_remove_flags(new, SPD_FREE);
 
+	// Here? Getting closer? -jcm
 	pgtbl = spd_alloc_pgtbl();
 	if (0 == pgtbl) {
 		spd_mpd_set_flags(new, SPD_FREE);
@@ -861,7 +878,7 @@ short int spd_alloc_mpd_desc(void)
 	}
 
 	spd_mpd_take(new);
-//	printk("cos: mpd alloc %p (%d)\n", new, cos_ref_val(&new->spd_info.ref_cnt));
+	printk("cos: mpd alloc %p (%d)\n", new, cos_ref_val(&new->spd_info.ref_cnt));
 	new->spd_info.pg_tbl = pgtbl;
 
 	return spd_mpd_index(new);
