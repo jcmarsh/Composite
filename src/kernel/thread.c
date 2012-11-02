@@ -81,9 +81,11 @@ struct thread *thd_alloc(struct spd *spd)
 	memset(thd, 0, sizeof(struct thread));
 	thd->thread_id = id;
 
+	printk("THE FOLLOW CODE NEEDS TO BE FIXED! FAILING OUT!\n");
+	return -1;
 	thd->data_region = page;
 	*(int*)page = 4; /* HACK: sizeof(struct cos_argr_placekeeper) */ // TODO: Gah! Fix this -jcm
-	thd->ul_data_page = COS_INFO_REGION_ADDR + (PAGE_SIZE * id);
+	thd->ul_data_page = COS_INFO_REGION_ADDR + (PAGE_SIZE * id); // AND THIS!
 	thd_publish_data_page(thd, (vaddr_t)page);
 
 	/* Initialization */
@@ -178,6 +180,7 @@ int thd_check_atomic_preempt(struct thread *thd)
 	return 0;
 }
 
+// TODO: Needs to be fixed. -jcm
 void thd_print_regs(struct thread *t) {
 	struct pt_regs *r = &t->regs;
 	struct spd *s = thd_get_thd_spd(t);

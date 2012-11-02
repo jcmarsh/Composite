@@ -509,6 +509,7 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 	 * virtual as we might need to alter this while not in the
 	 * spd's page tables (i.e. when merging protection domains).
 	 */
+	printk("\tSPD.C user_vaddr_cap_tbl: %lx\n", (unsigned long)spd->user_vaddr_cap_tbl);
 	kaddr = pgtbl_vaddr_to_kaddr(pg_tbl, (unsigned long)spd->user_vaddr_cap_tbl);
 	if (0 == kaddr) {
 		printk("cos: could not translate the user-cap address, %zx, into a kernel vaddr for spd %d.\n",
@@ -524,7 +525,7 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 	//	assert(pages_identical((unsigned long*)spd->user_vaddr_cap_tbl,
 	//		       (unsigned long*)spd->user_cap_tbl));
 	printk("\tSPD.C SPD_SET_LOCATION\n");
-return -1;
+	//return -1;
 	return 0;
 }
 
@@ -808,6 +809,7 @@ extern vaddr_t kern_pgtbl_mapping;
 extern void copy_pgtbl_range_nocheck(paddr_t pt_to, paddr_t pt_from,
 				     unsigned long lower_addr, unsigned long size);
 
+// TODO: This should allocate two pages (for 4MB) -jcm
 paddr_t spd_alloc_pgtbl(void)
 {
 	struct page_list *page;
@@ -818,7 +820,7 @@ paddr_t spd_alloc_pgtbl(void)
 	page = cos_get_pg_pool();
 	if (NULL == page) return 0;
 	pp = (paddr_t)va_to_pa(page);
-	printk("page: %p\t pp %lx\n", page, pp);
+	//	printk("page: %p\t pp %lx\n", page, pp);
 
 	/* 
 	 * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
@@ -831,9 +833,8 @@ paddr_t spd_alloc_pgtbl(void)
 	 *
 	 * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
 	 */
-	/// TODO: what is this? 0xFFFFFFFF? Will try less space -jcm
+	// TODO: 0xFFFFFFFF for 32, 0x3FFFFFFF for 64. hpage_index is likely wrong; this gives correct results -jcm.
 	//	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0xFFFFFFFF);
-	//	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0x0000FFFFFFFFFFFF);
 	copy_pgtbl_range_nocheck(pp, (paddr_t)va_to_pa((void*)kern_pgtbl_mapping), 0, 0x000000003FFFFFFF);
 	assert(!pgtbl_entry_absent(pp, COS_INFO_REGION_ADDR));
 
@@ -867,7 +868,6 @@ short int spd_alloc_mpd_desc(void)
 	new->members = NULL;
 	spd_mpd_remove_flags(new, SPD_FREE);
 
-	// Here? Getting closer? -jcm
 	pgtbl = spd_alloc_pgtbl();
 	if (0 == pgtbl) {
 		spd_mpd_set_flags(new, SPD_FREE);
@@ -877,6 +877,7 @@ short int spd_alloc_mpd_desc(void)
 		return -1;
 	}
 
+	// Here? Getting closer? -jcm	
 	spd_mpd_take(new);
 	printk("cos: mpd alloc %p (%d)\n", new, cos_ref_val(&new->spd_info.ref_cnt));
 	new->spd_info.pg_tbl = pgtbl;

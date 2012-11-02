@@ -42,7 +42,7 @@ void cos_free_page(void *page)
 	free_pages((unsigned long int)page, 0);
 }
 
-// TODO: Double check this -jcm 
+// TODO: Change me maybe? -jcm
 inline unsigned long hpage_index(unsigned long n)
 {
         unsigned long idx = n >> HPAGE_SHIFT;
@@ -232,6 +232,7 @@ vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 
 ////////////////////////////////////////////////////////////////////////
 /* FIXME: change to clone_pgd_range */
+// TODO: This is incorrect for x86_64 -jcm Should probably be pmd.
 inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
 				  unsigned long lower_addr, unsigned long size)
 {
@@ -239,6 +240,7 @@ inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
 	pgd_t *fpgd = pgd_offset(from_mm, lower_addr);
 	unsigned long span = hpage_index(size);
 
+	printk("COPY_PGD_RANGE: size: %lx\t span: %lx\n", size, span);
 	//#ifdef NIL
 	if (!(pgd_val(*fpgd) & _PAGE_PRESENT)) {
 		printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
@@ -290,7 +292,7 @@ void copy_pgtbl_range_nocheck(paddr_t pt_to, paddr_t pt_from,
 	unsigned long span = hpage_index(size);
 
 	printk("Here I go, no check!: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
-	printk("Size: %lx", span);
+	printk("Span: %lx\n", span);
 
 	/* sizeof(pgd entry) is intended */
 	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
@@ -304,7 +306,7 @@ void copy_pgtbl_range_nonzero(paddr_t pt_to, paddr_t pt_from,
 	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
 	unsigned long span = hpage_index(size);
 	unsigned long i; // TODO: Shouldn't need to be... 
-	// TODO: Crap. Fix hpage_index.
+	// TODO: Check back.
 
 
 	printk("Copying from %p:%d to %p.\n", fpgd, span, tpgd);

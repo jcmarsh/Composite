@@ -135,7 +135,8 @@ struct pt_regs {
 #define round_to_pgd_page(x)    round_to_pow2(x, PGD_SIZE)
 #define round_up_to_pgd_page(x) round_up_to_pow2(x, PGD_SIZE)
 
-#define CACHE_LINE (32)
+//#define CACHE_LINE (32)
+#define CACHE_LINE (64) // Huh? -jcm
 #define CACHE_ALIGNED __attribute__ ((aligned (CACHE_LINE)))
 #define HALF_CACHE_ALIGNED __attribute__ ((aligned (CACHE_LINE/2)))
 #define PAGE_ALIGNED __attribute__ ((aligned(PAGE_SIZE)))
@@ -144,7 +145,6 @@ struct pt_regs {
 #define round_up_to_cacheline(x) round_up_to_pow2(x, CACHE_LINE)
 
 #define SHARED_REGION_START (unsigned long)(1<<30)  // 1 gig // Added cast jcm
-//#define SHARED_REGION_START 0xffff800040000000 // delete this -jcm
 #define SHARED_REGION_SIZE PGD_RANGE
 #define SERVICE_START (SHARED_REGION_START+SHARED_REGION_SIZE)
 #define SERVICE_END   (SHARED_REGION_START+(unsigned long)(1<<30))

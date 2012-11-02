@@ -302,9 +302,9 @@ static void print_syms(bfd *obj)
 
 	//notes: symbol_table[i]->flags & (BSF_FUNCTION | BSF_GLOBAL)
 	for (i = 0; i < number_of_symbols; i++) {
-		printl(PRINT_DEBUG, "name: %s, addr: %d, flags: %s, %s%s%s, in sect %s%s%s.\n",  
+		printl(PRINT_DEBUG, "name: %s, addr: %ld, flags: %s, %s%s%s, in sect %s%s%s.\n",  
 		       symbol_table[i]->name,
-		       (unsigned int)(symbol_table[i]->section->vma + symbol_table[i]->value),
+		       (unsigned long)(symbol_table[i]->section->vma + symbol_table[i]->value),
 		       (symbol_table[i]->flags & BSF_GLOBAL) ? "global" : "local", 
 		       (symbol_table[i]->flags & BSF_FUNCTION) ? "function" : "data",
 		       symbol_table[i]->flags & BSF_SECTION_SYM ? ", section": "", 
@@ -450,32 +450,32 @@ int set_object_addresses(bfd *obj, struct service_symbs *obj_data)
 	int i;
 
 /* debug:
-	unsigned int *retaddr;
+	unsigned long *retaddr;
 	char **blah;
 	typedef int (*fn_t)(void);
 	fn_t fn;
 	char *str = "hi, this is";
 
-	if ((retaddr = (unsigned int*)getsym(obj, "ret")))
-		printl(PRINT_DEBUG, "ret %x is %d.\n", (unsigned int)retaddr, *retaddr);
-	if ((retaddr = (unsigned int*)getsym(obj, "blah")))
-		printl(PRINT_DEBUG, "blah %x is %d.\n", (unsigned int)retaddr, *retaddr);
-	if ((retaddr = (unsigned int*)getsym(obj, "zero")))
-		printl(PRINT_DEBUG, "zero %x is %d.\n", (unsigned int)retaddr, *retaddr);
+	if ((retaddr = (unsigned long*)getsym(obj, "ret")))
+		printl(PRINT_DEBUG, "ret %x is %d.\n", (unsigned long)retaddr, *retaddr);
+	if ((retaddr = (unsigned long*)getsym(obj, "blah")))
+		printl(PRINT_DEBUG, "blah %x is %d.\n", (unsigned long)retaddr, *retaddr);
+	if ((retaddr = (unsigned long*)getsym(obj, "zero")))
+		printl(PRINT_DEBUG, "zero %x is %d.\n", (unsigned long)retaddr, *retaddr);
 	if ((blah = (char**)getsym(obj, "str")))
-		printl(PRINT_DEBUG, "str %x is %s.\n", (unsigned int)blah, *blah);
-	if ((retaddr = (unsigned int*)getsym(obj, "other")))
-		printl(PRINT_DEBUG, "other %x is %d.\n", (unsigned int)retaddr, *retaddr);
+		printl(PRINT_DEBUG, "str %x is %s.\n", (unsigned long)blah, *blah);
+	if ((retaddr = (unsigned long*)getsym(obj, "other")))
+		printl(PRINT_DEBUG, "other %x is %d.\n", (unsigned long)retaddr, *retaddr);
 	if ((fn = (fn_t)getsym(obj, "foo")))
 		printl(PRINT_DEBUG, "retval from foo: %d (%d).\n", fn(), (int)*str);
 */
 	for (i = 0 ; i < st->num_symbs ; i++) {
 		char *symb = st->symbs[i].name;
 		unsigned long addr = getsym(obj, symb);
-/*
-		printl(PRINT_DEBUG, "Symbol %s at address 0x%x.\n", symb, 
-		       (unsigned int)addr);
-*/
+
+		printl(PRINT_DEBUG, "Symbol %s at address 0x%lx.\n", symb, 
+		       (unsigned long)addr);
+
 		if (addr == 0) {
 			printl(PRINT_DEBUG, "Symbol %s has invalid address.\n", symb);
 			return -1;
@@ -1688,8 +1688,8 @@ static void print_kern_symbs(struct service_symbs *services)
 		vaddr_t addr;
 
 		if ((addr = get_symb_address(&services->exported, u_tbl))) {
-			printl(PRINT_DEBUG, "Service %s:\n\tusr_cap_tbl: %x\n",
-			       services->obj, (unsigned int)addr);
+			printl(PRINT_DEBUG, "Service %s:\n\tusr_cap_tbl: %lx\n",
+			       services->obj, (unsigned long)addr);
 		}
 		
 		services = services->next;
@@ -1715,7 +1715,7 @@ static void print_kern_symbs(struct service_symbs *services)
 /* 			s->spd = spd_alloc(num_undef, ucap_tbl); */
 /* 		} */
 
-/* //		printl(PRINT_DEBUG, "Service %s has spd %x.\n", s->obj, (unsigned int)s->spd); */
+/* //		printl(PRINT_DEBUG, "Service %s has spd %lx.\n", s->obj, (unsigned long)s->spd); */
 
 /* 		s = s->next; */
 /* 	} */
@@ -1875,7 +1875,7 @@ static struct symb *spd_contains_symb(struct service_symbs *s, char *name)
 struct cap_ret_info {
 	struct symb *csymb, *ssymbfn, *cstub, *sstub;
 	struct service_symbs *serv;
-	u32_t fault_handler;
+        u32_t fault_handler;  // TODO: This will likely need to change. -jcm
 };
 
 static int cap_get_info(struct service_symbs *service, struct cap_ret_info *cri, struct symb *symb)
@@ -2017,10 +2017,10 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 		return NULL;
 	}
 	printl(PRINT_DEBUG, "CREATE_SPD:6\n");
-	printl(PRINT_HIGH, "spd %s, id %d with initialization string \"%s\" @ %x.\n", 
-	       s->obj, (unsigned int)spd->spd_handle, s->init_str, (unsigned int)spd->lowest_addr);
+	printl(PRINT_HIGH, "spd %s, id %d with initialization string \"%s\" @ %lx.\n", 
+	       s->obj, (unsigned int)spd->spd_handle, s->init_str, (unsigned long)spd->lowest_addr);
 	*spd_id_addr = spd->spd_handle;
-	printl(PRINT_DEBUG, "\tHeap pointer directed to %x.\n", (unsigned int)s->heap_top);
+	printl(PRINT_DEBUG, "\tHeap pointer directed to %lx.\n", (unsigned long)s->heap_top);
 	*heap_ptr = s->heap_top;
 
 	printl(PRINT_DEBUG, "\tFound ucap_tbl for component %s @ %p.\n", s->obj, ucap_tbl);
@@ -2049,8 +2049,8 @@ void make_spd_scheduler(int cntl_fd, struct service_symbs *s, struct service_sym
 	ci = (struct cos_component_information*)get_symb_address(&s->exported, COMP_INFO);
 	sched_page = (vaddr_t)ci->cos_sched_data_area;
 
-	printl(PRINT_DEBUG, "Found spd notification page @ %x.  Promoting to scheduler.\n", 
-	       (unsigned int) sched_page);
+	printl(PRINT_DEBUG, "Found spd notification page @ %lx.  Promoting to scheduler.\n", 
+	       (unsigned long) sched_page);
 
 	cos_promote_to_scheduler(cntl_fd, spd->spd_handle, (NULL == parent)? -1 : parent->spd_handle, sched_page);
 
@@ -2310,7 +2310,7 @@ make_spd_boot_schedule(struct service_symbs *comp, struct service_symbs **sched,
 }
 
 //#define INIT_STR_SZ 116
-#define INIT_STR_SZ 52
+#define INIT_STR_SZ 52 //TODO: What is this? -jcm
 /* struct is 64 bytes, so we can have 64 entries in a page. */
 struct component_init_str {
 	unsigned int spdid, schedid;
@@ -2326,7 +2326,8 @@ make_spd_boot(struct service_symbs *boot, struct service_symbs *all)
 	unsigned int off = 0, i;
 	struct cobj_header *h, *new_h;
 	char *new_end, *new_sect_start;
-	u32_t new_vaddr_start;
+	//u32_t new_vaddr_start;
+	vaddr_t new_vaddr_start;
 	u32_t all_obj_sz;
 	struct cos_component_information *ci;
 	struct service_symbs *first = all;
@@ -2426,9 +2427,12 @@ make_spd_boot(struct service_symbs *boot, struct service_symbs *all)
 		memcpy(new_end, h, h->size);
 		new_end += round_up_to_cacheline(h->size);
  	}
-	assert((u32_t)(new_end - new_sect_start) + 3*PAGE_SIZE == 
+	//	assert((u32_t)(new_end - new_sect_start) + 3*PAGE_SIZE == 
+	//       cobj_sect_get(new_h, 3)->bytes);
+	assert((vaddr_t)(new_end - new_sect_start) + 3*PAGE_SIZE == // TODO: Check this -jcm
 	       cobj_sect_get(new_h, 3)->bytes);
 	
+
 	all = first;
 	ci->cos_poly[1] = (vaddr_t)n;
 
@@ -2439,13 +2443,13 @@ make_spd_boot(struct service_symbs *boot, struct service_symbs *all)
 	ci->cos_poly[3] = ADDR2VADDR(new_end);
 	format_config_info(all, (struct component_init_str*)new_end);
 
-	assert(off < PAGE_SIZE/sizeof(unsigned int)); /* schedule must fit into page. */
+	assert(off < PAGE_SIZE/sizeof(unsigned long)); /* schedule must fit into page. */
 	new_end += PAGE_SIZE;
 	ci->cos_poly[4] = ADDR2VADDR(new_end);
 	for (i = 0 ; i < off ; i++) {
-		((int *)new_end)[i] = service_get_spdid(schedule[i]);
+	  ((long *)new_end)[i] = service_get_spdid(schedule[i]); // TODO: Should these be long * or int *? -jcm
 	}
-	((int *)new_end)[off] = 0;
+	((long *)new_end)[off] = 0;
 
 	new_end += PAGE_SIZE;
 	ci->cos_heap_ptr = round_up_to_page(ADDR2VADDR(new_end));
@@ -2478,8 +2482,8 @@ spd_assign_ids(struct service_symbs *all)
 static void 
 make_spd_llboot(struct service_symbs *boot, struct service_symbs *all)
 {
-	volatile long **heap_ptr;
-	long *heap_ptr_val, n = 0;
+	volatile unsigned long **heap_ptr;
+	unsigned long *heap_ptr_val, n = 0; // TODO: Unsigned? -jcm
 	struct cobj_header *h;
 	char *mem;
 	u32_t obj_size;
@@ -2506,7 +2510,7 @@ make_spd_llboot(struct service_symbs *boot, struct service_symbs *all)
 		}
 	}
 
-	heap_ptr = (volatile long **)get_heap_ptr(boot);
+	heap_ptr = (volatile unsigned long **)get_heap_ptr(boot);
 	ci = (void *)get_symb_address(&boot->exported, COMP_INFO);
 	ci->cos_poly[0] = (vaddr_t)*heap_ptr;
 
@@ -2517,14 +2521,14 @@ make_spd_llboot(struct service_symbs *boot, struct service_symbs *all)
 		if (!is_booter_loaded(all) || is_hl_booter_loaded(all)) continue;
 		n++;
 
-		heap_ptr_val = (long*)*heap_ptr;
+		heap_ptr_val = (unsigned long*)*heap_ptr;
 		assert(is_booter_loaded(all));
 		h = all->cobj;
 		assert(h);
 
 		obj_size = round_up_to_cacheline(h->size);
 		map_addr = round_up_to_page(heap_ptr_val);
-		map_sz = (int)obj_size - (int)(map_addr-(vaddr_t)heap_ptr_val); // This doesn't seem correct -jcm
+		map_sz = (int)obj_size - (unsigned long)(map_addr-(vaddr_t)heap_ptr_val); // This doesn't seem correct -jcm Maybe now it is? -jcm
 		if (map_sz > 0) {
 			mem = mmap((void*)map_addr, map_sz, PROT_WRITE | PROT_READ,
 				   MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
@@ -2536,10 +2540,10 @@ make_spd_llboot(struct service_symbs *boot, struct service_symbs *all)
 		printl(PRINT_HIGH, "boot component: placing %s:%d @ %p, copied from %p:%d\n", 
 		       all->obj, service_get_spdid(all), heap_ptr_val, h, obj_size);
 		memcpy(heap_ptr_val, h, h->size);
-		*heap_ptr = (void*)(((long)heap_ptr_val) + obj_size);
+		*heap_ptr = (void*)(((unsigned long)heap_ptr_val) + obj_size);
 	}
 	all = first;
-	*heap_ptr = (long*)(round_up_to_page((long)*heap_ptr));
+	*heap_ptr = (unsigned long*)(round_up_to_page((unsigned long)*heap_ptr));
 	ci->cos_poly[1] = (vaddr_t)n;
 
 	ci->cos_poly[2] = ((unsigned long)*heap_ptr);
@@ -2585,7 +2589,7 @@ static void format_config_info(struct service_symbs *ss, struct component_init_s
 
 static void make_spd_config_comp(struct service_symbs *c, struct service_symbs *all)
 {
-	long **heap_ptr, *heap_ptr_val;
+  long **heap_ptr, *heap_ptr_val; // TODO: should it be unsigned? -jcm
 	struct component_init_str *info;
 
 	heap_ptr = get_heap_ptr(c);
@@ -2634,7 +2638,9 @@ static void setup_kernel(struct service_symbs *services)
 	unsigned long long start, end;
 	
 	
+
 	cntl_fd = aed_open_cntl_fd();
+
 
 	s = services;
 	printl(PRINT_HIGH, "\nEntered setup_kernel\n\n");

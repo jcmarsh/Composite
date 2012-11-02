@@ -114,6 +114,7 @@ DEFINE_PER_CPU(unsigned long, composite_old_rsp);
 DEFINE_PER_CPU(unsigned long, x86_tss) = { 0 };
 
 // James' ugly debugging code.
+/*
 void print_bit(unsigned long addr) {
   unsigned long mask = 0x8000000000000000;
   unsigned long current_bit = 0;
@@ -168,7 +169,7 @@ void print_addr_in_binary(unsigned long addr) {
   }
   printk("\n");    
 }
-
+*/
 /* 
  * THIS FUNCTION IS HORRIBLE.
  * Prints whatever is in %rdi.
@@ -659,14 +660,21 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			printk("\t COS_INFO_REG_AD: %x\t PGD_RANGE     %x\n", COS_INFO_REGION_ADDR, PGD_RANGE);
 		
 			printk("****************************************************\n");
+			printk("I AM SO CONFUSED RIGHT NOW!\n");
 			lookup_address_mm(mm, spd_info.lowest_addr);
 			lookup_address_mm(mm, COS_INFO_REGION_ADDR);
+			lookup_address_mm(mm, 0x40604000);
+			lookup_address_mm(current->mm, 0x40604000);
+			lookup_address_mm(mm, 0x40601000);
+			lookup_address_mm(current->mm, 0x40601000);
+			
 
 			copy_pgd_range(mm, current->mm, spd_info.lowest_addr, spd_info.size);
-			copy_pgd_range(mm, current->mm, COS_INFO_REGION_ADDR, PGD_RANGE);
+			//copy_pgd_range(mm, current->mm, COS_INFO_REGION_ADDR, PGD_RANGE);
 
 			lookup_address_mm(mm, spd_info.lowest_addr);
 			lookup_address_mm(mm, COS_INFO_REGION_ADDR);	
+			lookup_address_mm(mm, 0x40606000);
 
 			printk("****************************************************\n");
 			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
@@ -1676,6 +1684,10 @@ static int aed_open(struct inode *inode, struct file *file)
 
 	printk("Who let the dogs out?\n");
 
+	printk("BLAHBLAHBLAH!!!!!!\n");
+	lookup_address_mm(current->mm, 0x40606000);
+	printk("!!!!!!HALBHALBHALB\n");
+
 	if (composite_thread != NULL || composite_union_mm != NULL) {
 		printk("cos: Composite subsystem already used by %d.\n", composite_thread->pid);
 		return -EBUSY;
@@ -1695,6 +1707,10 @@ static int aed_open(struct inode *inode, struct file *file)
 	kern_handle = aed_allocate_mm();
 	kern_mm = aed_get_mm(kern_handle);
 	kern_pgtbl_mapping = (vaddr_t)kern_mm->pgd;
+
+	printk("BLAHBLAHBLAH!!!!!!\n");
+	lookup_address_mm(current->mm, 0x40606000);
+	printk("!!!!!!HALBHALBHALB\n");
 
 	//assert(!pgtbl_entry_absent(kern_pgtbl_mapping, 0xffffb0b0));
 	/*
@@ -1726,6 +1742,10 @@ static int aed_open(struct inode *inode, struct file *file)
 	}
 	memset(shared_region_pte, 0, PAGE_SIZE);
 	
+	printk("BLAHBLAHBLAH!!!!!!\n");
+	lookup_address_mm(current->mm, 0x40606000);
+	printk("!!!!!!HALBHALBHALB\n");
+
 	/* hook in the data page */
 	// These two lines seem like they are causing problems. -jcm
 	data_page = va_to_pa((void *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), 
@@ -1736,7 +1756,10 @@ static int aed_open(struct inode *inode, struct file *file)
 	printk("WMWMWMW: shared_region_pte: %lx\n", shared_region_pte);
 	printk("WMWMWMW: data_page: %lx\n", data_page);
 	printk("WMWMWMW: shared_data_page: %lx\n", shared_data_page);
-
+	
+	printk("BLAHBLAHBLAH!!!!!!\n");
+	lookup_address_mm(current->mm, 0x40606000);
+	printk("!!!!!!HALBHALBHALB\n");
 
 	lookup_address_mm(current->mm, COS_INFO_REGION_ADDR); // prints
 
@@ -1754,6 +1777,11 @@ static int aed_open(struct inode *inode, struct file *file)
 	}
 	pmd = pmd_offset(pud, COS_INFO_REGION_ADDR);
 	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
+
+	printk("BLAHBLAHBLAH!!!!!!\n");
+	lookup_address_mm(current->mm, 0x40606000);
+	printk("!!!!!!HALBHALBHALB\n");
+
 	lookup_address_mm(current->mm, COS_INFO_REGION_ADDR); // prints
 
 	/* 
@@ -1771,6 +1799,11 @@ static int aed_open(struct inode *inode, struct file *file)
 	}
 
 	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
+
+	printk("BLAHBLAHBLAH!!!!!!\n");
+	lookup_address_mm(current->mm, 0x40606000);
+	printk("!!!!!!HALBHALBHALB\n");
+
 	lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
 
 	printk("cos: info region @ %lu(%lx)\n",
@@ -1778,7 +1811,11 @@ static int aed_open(struct inode *inode, struct file *file)
 
 	if (open_checks()) return -EFAULT;
 	//*/
-	
+
+	printk("BLAHBLAHBLAH!!!!!!\n");
+	lookup_address_mm(current->mm, 0x40606000);
+	printk("!!!!!!HALBHALBHALB\n");	
+
 	// FIXME: jcm Check to see if offsets are correct
 	printk("Check Offsets\n");
 	check_offsets();

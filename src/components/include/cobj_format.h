@@ -74,7 +74,7 @@ struct cobj_symb {
 
 struct cobj_cap { 
 	u32_t cap_off, dest_id, fault_num;
-	u32_t sfn, cstub, sstub;
+        u32_t sfn, cstub, sstub; // TODO: check if these are okay as u32_t -jcm
 } __attribute__((packed));
 
 static inline int
