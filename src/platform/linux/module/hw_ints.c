@@ -170,7 +170,7 @@ hw_int_reset(void)
 #endif /* X86_64 */
 }
 
-// You are dumb. And need to fix this.
+// You are dumb. And need to fix this. -jcm
 //extern unsigned long *pgtbl_module_to_vaddr(unsigned long addr);
 
 /* 

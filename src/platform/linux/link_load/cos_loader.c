@@ -1970,8 +1970,6 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 	struct cos_component_information *ci;
 	int i;
 
-	printl(PRINT_DEBUG, "CREATE_SPD:0\n");
-
 	assert(!is_booter_loaded(s));
 	spd = (struct spd_info *)malloc(sizeof(struct spd_info));
 	if (NULL == spd) {
@@ -1979,7 +1977,6 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 		return NULL;
 	}
 
-	printl(PRINT_DEBUG, "CREATE_SPD:1\n");
 	ci = (void*)get_symb_address(&s->exported, COMP_INFO);
 	if (ci == NULL) {
 		printl(PRINT_DEBUG, "Could not find %s in %s.\n", COMP_INFO, s->obj);
@@ -1990,7 +1987,6 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 	heap_ptr    = (long*)&ci->cos_heap_ptr;
 	ucap_tbl    = (struct usr_inv_cap*)ci->cos_user_caps;
 	
-	printl(PRINT_DEBUG, "CREATE_SPD:2\n");
 	for (i = 0 ; i < NUM_ATOMIC_SYMBS ; i++) {
 		if (i % 2 == 0) {
 			spd->atomic_regions[i] = ci->cos_ras[i/2].start;
@@ -1999,24 +1995,20 @@ struct spd_info *create_spd(int cos_fd, struct service_symbs *s,
 		}
 	}
 	
-	printl(PRINT_DEBUG, "CREATE_SPD:3\n");
 	spd->num_caps = s->undef.num_symbs;
 	spd->ucap_tbl = (vaddr_t)ucap_tbl;
 	spd->lowest_addr = lowest_addr;
 	spd->size = size;
 	spd->upcall_entry = upcall_addr;
 
-	printl(PRINT_DEBUG, "CREATE_SPD:4\n");
 	spdid_inc++; // ERROR IN HERE -jcm
 	spd->spd_handle = cos_create_spd(cos_fd, spd);
-	printl(PRINT_DEBUG, "CREATE_SPD:5\n");
 	assert(spdid_inc == spd->spd_handle);
 	if (spd->spd_handle < 0) {
 		printl(PRINT_DEBUG, "Could not create spd %s\n", s->obj);
 		free(spd);
 		return NULL;
 	}
-	printl(PRINT_DEBUG, "CREATE_SPD:6\n");
 	printl(PRINT_HIGH, "spd %s, id %d with initialization string \"%s\" @ %lx.\n", 
 	       s->obj, (unsigned int)spd->spd_handle, s->init_str, (unsigned long)spd->lowest_addr);
 	*spd_id_addr = spd->spd_handle;
@@ -2217,7 +2209,7 @@ static void make_spd_init_file(struct service_symbs *ic, const char *fname)
 
 static int make_cobj_symbols(struct service_symbs *s, struct cobj_header *h)
 {
-	u32_t addr;
+	vaddr_t addr;
 	u32_t symb_offset = 0;
 	int i;
 
@@ -2233,7 +2225,7 @@ static int make_cobj_symbols(struct service_symbs *s, struct cobj_header *h)
 	/* Create the sumbols */
 	printl(PRINT_DEBUG, "%s loaded by Composite -- Symbols:\n", s->obj);
 	for (i = 0 ; map[i].name != NULL ; i++) {
-		addr = (u32_t)get_symb_address(&s->exported, map[i].name);
+		addr = get_symb_address(&s->exported, map[i].name);
 		printl(PRINT_DEBUG, "\taddr %x, nsymb %d\n", addr, i);
 		if (addr && cobj_symb_init(h, symb_offset++, map[i].type, addr)) {
 			printl(PRINT_HIGH, "boot component: couldn't create cobj symb for %s (%d).\n", map[i].name, i);
@@ -2413,7 +2405,8 @@ make_spd_boot(struct service_symbs *boot, struct service_symbs *all)
 #define ADDR2VADDR(a) ((a-new_sect_start)+new_vaddr_start)
 
 
-	ci = (void *)cobj_vaddr_get(new_h, (u32_t)get_symb_address(&boot->exported, COMP_INFO));
+	// TODO: This is clearly incorrect -jcm
+	ci = (void *)cobj_vaddr_get(new_h, get_symb_address(&boot->exported, COMP_INFO));
 	assert(ci);
 	ci->cos_poly[0] = ADDR2VADDR(new_sect_start);
 
@@ -2637,10 +2630,7 @@ static void setup_kernel(struct service_symbs *services)
 	int (*fn)(void);
 	unsigned long long start, end;
 	
-	
-
 	cntl_fd = aed_open_cntl_fd();
-
 
 	s = services;
 	printl(PRINT_HIGH, "\nEntered setup_kernel\n\n");
@@ -2681,6 +2671,7 @@ static void setup_kernel(struct service_symbs *services)
 
 		s = s->next;
 	}
+
 	printl(PRINT_DEBUG, "Stubs done.\n"); // -jcm
 	printl(PRINT_DEBUG, "\n");
 
@@ -2710,6 +2701,7 @@ static void setup_kernel(struct service_symbs *services)
 		make_spd_llboot(s, services);
 		make_spd_scheduler(cntl_fd, s, NULL);
 	} 
+
 	printl(PRINT_DEBUG, "JCM BETA\n");
 	fflush(stdout);
 	thd.sched_handle = ((struct spd_info *)s->extern_info)->spd_handle;
@@ -2732,7 +2724,10 @@ static void setup_kernel(struct service_symbs *services)
 		fprintf(stderr, "Could not find initial component\n");
 		exit(-1);
 	}
+
 	thd.spd_handle = ((struct spd_info *)s->extern_info)->spd_handle;//spd0->spd_handle;
+
+	printl(PRINT_DEBUG, "JCM Greek C\n");
 	cos_create_thd(cntl_fd, &thd);
 
 	printl(PRINT_HIGH, "\nOK, good to go, calling component 0's main\n\n");

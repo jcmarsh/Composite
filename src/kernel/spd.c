@@ -522,10 +522,10 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 
 	printk("\tSPD.C \t vaddr_cap: %p\n", spd->user_vaddr_cap_tbl);
 	printk("\tSPD.C \t cap: %p\n", spd->user_cap_tbl);
-	//	assert(pages_identical((unsigned long*)spd->user_vaddr_cap_tbl,
-	//		       (unsigned long*)spd->user_cap_tbl));
+	assert(pages_identical((unsigned long*)spd->user_vaddr_cap_tbl,
+			       (unsigned long*)spd->user_cap_tbl));
 	printk("\tSPD.C SPD_SET_LOCATION\n");
-	//return -1;
+
 	return 0;
 }
 

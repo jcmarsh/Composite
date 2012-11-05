@@ -1638,7 +1638,7 @@ static int open_checks(void)
 	 * register).
 	 */
 #define MAGIC_VAL_TEST 0xdeadbeef
-	volatile unsigned int *region_ptr;
+	volatile unsigned long *region_ptr;
 	paddr_t modval, userval;
 	volatile vaddr_t kern_data;
 
@@ -1647,21 +1647,21 @@ static int open_checks(void)
 	userval = (paddr_t)va_to_pa((void *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), 
 								     (unsigned long)COS_INFO_REGION_ADDR));
 	if (modval != userval) {
-		printk("shared data page error: %x != %x\n", (unsigned int)modval, (unsigned int)userval);
+		printk("shared data page error: %lx != %lx\n", (unsigned long)modval, (unsigned long)userval);
 		return -EFAULT;
 	}
-	region_ptr  = (unsigned int *)COS_INFO_REGION_ADDR;
-	*((volatile unsigned int*)shared_data_page) = MAGIC_VAL_TEST;
-	*((volatile unsigned int*)region_ptr) = MAGIC_VAL_TEST;
+	region_ptr  = (unsigned long *)COS_INFO_REGION_ADDR;
+	*((volatile unsigned long*)shared_data_page) = MAGIC_VAL_TEST;
+	*((volatile unsigned long*)region_ptr) = MAGIC_VAL_TEST;
 	if (*region_ptr != *shared_data_page || *region_ptr != MAGIC_VAL_TEST) {
-		printk("cos: Mapping of the cos shared region didn't work (%x != %x !=(kern page) %x).\n",
-		       (unsigned int)*region_ptr, (unsigned int)*shared_data_page, *(unsigned int*)kern_data);
+		printk("cos: Mapping of the cos shared region didn't work (%lx != %lx !=(kern page) %lx).\n",
+		       (unsigned long)*region_ptr, (unsigned long)*shared_data_page, *(unsigned long*)kern_data);
 		return -EFAULT;
 	} else {
-		printk("cos: Mapping of shared region worked: %x.\n", (unsigned int)*region_ptr);
+		printk("cos: Mapping of shared region worked: %lx.\n", (unsigned long)*region_ptr);
 	}
 
-	*region_ptr = 0;
+	*region_ptr = (unsigned long)0;
 	return 0;
 }
 
@@ -1682,12 +1682,6 @@ static int aed_open(struct inode *inode, struct file *file)
 	unsigned long data_page_addr;
 	unsigned long james_test;
 
-	printk("Who let the dogs out?\n");
-
-	printk("BLAHBLAHBLAH!!!!!!\n");
-	lookup_address_mm(current->mm, 0x40606000);
-	printk("!!!!!!HALBHALBHALB\n");
-
 	if (composite_thread != NULL || composite_union_mm != NULL) {
 		printk("cos: Composite subsystem already used by %d.\n", composite_thread->pid);
 		return -EBUSY;
@@ -1707,10 +1701,6 @@ static int aed_open(struct inode *inode, struct file *file)
 	kern_handle = aed_allocate_mm();
 	kern_mm = aed_get_mm(kern_handle);
 	kern_pgtbl_mapping = (vaddr_t)kern_mm->pgd;
-
-	printk("BLAHBLAHBLAH!!!!!!\n");
-	lookup_address_mm(current->mm, 0x40606000);
-	printk("!!!!!!HALBHALBHALB\n");
 
 	//assert(!pgtbl_entry_absent(kern_pgtbl_mapping, 0xffffb0b0));
 	/*
@@ -1742,12 +1732,7 @@ static int aed_open(struct inode *inode, struct file *file)
 	}
 	memset(shared_region_pte, 0, PAGE_SIZE);
 	
-	printk("BLAHBLAHBLAH!!!!!!\n");
-	lookup_address_mm(current->mm, 0x40606000);
-	printk("!!!!!!HALBHALBHALB\n");
-
 	/* hook in the data page */
-	// These two lines seem like they are causing problems. -jcm
 	data_page = va_to_pa((void *)pgtbl_vaddr_to_kaddr((paddr_t)va_to_pa(current->mm->pgd), 
 							  (unsigned long)shared_data_page));
 	shared_region_pte[0].pte = ((unsigned long)(data_page) & PTE_MASK) |
@@ -1757,12 +1742,6 @@ static int aed_open(struct inode *inode, struct file *file)
 	printk("WMWMWMW: data_page: %lx\n", data_page);
 	printk("WMWMWMW: shared_data_page: %lx\n", shared_data_page);
 	
-	printk("BLAHBLAHBLAH!!!!!!\n");
-	lookup_address_mm(current->mm, 0x40606000);
-	printk("!!!!!!HALBHALBHALB\n");
-
-	lookup_address_mm(current->mm, COS_INFO_REGION_ADDR); // prints
-
 	/* Where in the page directory should the pte go? */
 	// TODO: I really need to abstract this into a function. pgtbl_lookup_address and another function do the same thing. And I'm about to do it again for kern_mm -jcm
 	pgd = pgd_offset(current->mm, COS_INFO_REGION_ADDR);
@@ -1778,18 +1757,11 @@ static int aed_open(struct inode *inode, struct file *file)
 	pmd = pmd_offset(pud, COS_INFO_REGION_ADDR);
 	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 
-	printk("BLAHBLAHBLAH!!!!!!\n");
-	lookup_address_mm(current->mm, 0x40606000);
-	printk("!!!!!!HALBHALBHALB\n");
-
-	lookup_address_mm(current->mm, COS_INFO_REGION_ADDR); // prints
-
 	/* 
 	 * This is used to copy valid (linux) kernel mappings into a
 	 * new mpd.  Copy shared region too.
 	 */
 
-	lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
 	pgd = pgd_offset(kern_mm, COS_INFO_REGION_ADDR);
 
 	pmd = pgtbl_fill_to_pmd(pgd, COS_INFO_REGION_ADDR);
@@ -1800,21 +1772,10 @@ static int aed_open(struct inode *inode, struct file *file)
 
 	pmd->pmd = (unsigned long)(__pa(shared_region_pte)) | _PAGE_TABLE;
 
-	printk("BLAHBLAHBLAH!!!!!!\n");
-	lookup_address_mm(current->mm, 0x40606000);
-	printk("!!!!!!HALBHALBHALB\n");
-
-	lookup_address_mm(kern_mm, COS_INFO_REGION_ADDR); // prints
-
 	printk("cos: info region @ %lu(%lx)\n",
 	       COS_INFO_REGION_ADDR, COS_INFO_REGION_ADDR);
 
 	if (open_checks()) return -EFAULT;
-	//*/
-
-	printk("BLAHBLAHBLAH!!!!!!\n");
-	lookup_address_mm(current->mm, 0x40606000);
-	printk("!!!!!!HALBHALBHALB\n");	
 
 	// FIXME: jcm Check to see if offsets are correct
 	printk("Check Offsets\n");
@@ -1827,11 +1788,8 @@ static int aed_open(struct inode *inode, struct file *file)
 	// FIXME: jcm IPC.H
 
 
-	//return 0; // DOWN
 	printk("IPC init\n");
 	ipc_init();
-
-	//	return 0; // DOWN
 
 	// FIXME: jcm MMAP.H
 	printk("Memory init\n");
@@ -1840,12 +1798,9 @@ static int aed_open(struct inode *inode, struct file *file)
 	printk("Reg timers\n");
 	register_timers();
 
-	//return 0;
-
 	printk("Measures init\n");
 	cos_meas_init();
 
-	// return 0;
 	printk("Net init\n");
 	cos_net_init();
 

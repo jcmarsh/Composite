@@ -123,6 +123,8 @@ inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
+	pteval_t fix_pte;
+	unsigned long mask = (unsigned long)1 << 63;
 
 	printk("XXXXXXXXXXX pgtbl %lx\t addr %lx\n", pgtbl, addr);
 	printk("XXXXXXXXXXX pgd: %p\t *pgd: %lx\n", pgd, *pgd);
@@ -147,7 +149,13 @@ inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 	if (pte_none(*pte)) {
 	  printk("Well, that explains it. I didn't know it was possible.\n");
 	}
-	printk("XXXXXXXXXXX pte: %p\t *pte: %lx\n", pte, *pte);
+	printk("XXXXXXXXXXX pte: %p\t *pte: %lx\n", pte, pte_val(*pte));
+	
+        fix_pte = pte_val(*pte);
+	fix_pte = fix_pte & (~mask);
+	pte->pte = fix_pte;
+
+	printk("XXXXXXXXXXX pte: %p\t *pte: %lx\n", pte, pte_val(*pte));
 	return pte;
 }
 
@@ -164,6 +172,8 @@ inline pte_t *lookup_address_mm(struct mm_struct *mm, unsigned long addr)
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
+	pteval_t fix_pte;
+	unsigned long mask = (unsigned long)1 << 63;
 	
 	printk("WWWWWWWWWWW mm %lx\t addr %lx\n", mm, addr);
 	printk("WWWWWWWWWWW pgd: %p\t *pgd: %lx\n", pgd, *pgd);
@@ -189,7 +199,14 @@ inline pte_t *lookup_address_mm(struct mm_struct *mm, unsigned long addr)
 		return (pte_t *)pmd;
 	}
 	pte = pte_offset_kernel(pmd, addr);
-	printk("WWWWWWWWWWW pte: %p\t *pte: %lx\n", pte, *pte);
+	printk("WWWWWWWWWWW pte: %p\t *pte: %lx\n", pte, pte_val(*pte));
+
+        fix_pte = pte_val(*pte);
+	fix_pte = fix_pte & (~mask);
+	pte->pte = fix_pte;
+
+	printk("WWWWWWWWWWW pte: %p\t *pte: %lx\n", pte, pte_val(*pte));
+
         return pte;
 }
 
