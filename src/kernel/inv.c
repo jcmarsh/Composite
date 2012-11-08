@@ -357,8 +357,6 @@ struct thread *ready_boot_thread(struct spd *init)
 	struct thread *thd;
 	unsigned int tid;
 
-	printk("And the days go by\n");
-
 	assert(NULL != init);
 
 	thd = thd_alloc(init);

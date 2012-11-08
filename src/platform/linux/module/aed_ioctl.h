@@ -156,7 +156,7 @@ static inline int cos_create_spd(int cntl_fd, struct spd_info *spdi)
 		printf("ioctl returned %d\n", ret);
 		exit(-1);
 	}
-	printf("HOLA!\n");
+
 	return ret;
 }
 

@@ -53,8 +53,8 @@ IFEXP_GEN=$(FNDEP_DIR)/exp_ifs.py
 FNDEP_FILE=.fn_dependencies
 IFEXP_FILE=.exported_interfaces
 
-#.PHONY: all
-#all: $(SOURCE_DEPENDENCIES) $(COMPONENT) fndeps
+.PHONY: all
+all: $(SOURCE_DEPENDENCIES) $(COMPONENT) fndeps
 
 fndeps:
 #	@sh $(FNDEP_GEN) c.o > $(FNDEP_FILE)

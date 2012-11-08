@@ -501,7 +501,7 @@ int spd_set_location(struct spd *spd, unsigned long lowest_addr,
 
 	printk("\tSPD.C SPD_SET_LOCATION\n");
 	spd->spd_info.pg_tbl = pg_tbl;
-	spd->location[0].lowest_addr = lowest_addr;
+	spd->location[0].lowest_addr = lowest_addr; // Double check -jcm
 	spd->location[0].size = size;
 
 	/* 

@@ -45,8 +45,8 @@ void cos_free_page(void *page)
 // TODO: Change me maybe? -jcm
 inline unsigned long hpage_index(unsigned long n)
 {
-        unsigned long idx = n >> HPAGE_SHIFT;
-        return (idx << HPAGE_SHIFT) != n ? idx + 1 : idx;
+        unsigned long idx = n >> PG_LVL2_SHIFT;
+        return (idx << PG_LVL2_SHIFT) != n ? idx + 1 : idx;
 }
 
 /* returns the page table entry */
@@ -221,7 +221,6 @@ vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 	vaddr_t *kaddrv;
 	unsigned long *kaddrp;
 
-	printk("SANITY CHECK.\n");
 	if (!pte || !(pte_val(*pte) & _PAGE_PRESENT)) {
 		return 0;
 	}
@@ -234,6 +233,7 @@ vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 	 * 5) return value
 	 */
 
+	printk("In page_tables.c:pgtble_vaddr_to_kaddr\n");
 	printk("\t*pte: %lx\t, pte_val: %lx\n", *pte, pte_val(*pte));
 	printk("\t MASKS, PTE: %lx, PAGE: %lx\n", PTE_MASK, PAGE_MASK);
 
@@ -261,12 +261,31 @@ inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
 	//#ifdef NIL
 	if (!(pgd_val(*fpgd) & _PAGE_PRESENT)) {
 		printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
-		       from_mm, (unsigned int)lower_addr);
+		       from_mm, (unsigned long)lower_addr);
 	}
 	//#endif
 
 	/* sizeof(pgd entry) is intended */
 	memcpy(tpgd, fpgd, span*sizeof(pgd_t));
+}
+
+void copy_lvl2_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
+		     unsigned long lower_addr, unsigned long size)
+{
+  pmd_t *fpmd = lookup_address_mm(from_mm, lower_addr); // Should already exist (if not mapped, can't copy)
+  pmd_t *tpmd = pgtbl_fill_to_pmd(pgd_offset(to_mm, lower_addr), lower_addr); // May not exist yet, so fill as needed.
+  unsigned int span = hpage_index(size);
+
+  printk("copy_lvl2_range: size: %lx\t span: %lx\n", size, span);
+  //#ifdef NIL
+  if (!(pmd_val(*fpmd) & _PAGE_PRESENT)) {
+    printk("cos: BUG: nothing to copy in mm %p's pgd @ %x.\n", 
+	   from_mm, (unsigned long)lower_addr);
+  }
+  //#endif
+  
+  /* sizeof(pgd entry) is intended */
+  memcpy(tpmd, fpmd, span*sizeof(pmd_t));
 }
 
 void zero_pgtbl_range(paddr_t pt, unsigned long lower_addr, unsigned long size)
@@ -283,14 +302,13 @@ void zero_pgtbl_range(paddr_t pt, unsigned long lower_addr, unsigned long size)
 	memset(pgd, 0, span*sizeof(pgd_t));
 }
 
+// FIX THESE: need to differentiate between copy_pgtbl and cpy_pgd -jcm
 void copy_pgtbl_range(paddr_t pt_to, paddr_t pt_from, 
 		      unsigned long lower_addr, unsigned long size)
 {
 	pgd_t *tpgd = ((pgd_t *)pa_to_va((void*)pt_to)) + pgd_index(lower_addr);
 	pgd_t *fpgd = ((pgd_t *)pa_to_va((void*)pt_from)) + pgd_index(lower_addr);
 	unsigned long span = hpage_index(size);
-
-	printk("Here I go, again on my own: pt_to: %lx\t pt_from: %lx\t lower_addr: %lx\t size: %lx\n", pt_to, pt_from, lower_addr, size);
 
 	if (!(pgd_val(*fpgd)) & _PAGE_PRESENT) {
 		printk("cos: BUG: nothing to copy from pgd @ %x.\n", 

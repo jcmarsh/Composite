@@ -7,9 +7,9 @@ all:
 	$(info ***********************************************)
 	$(info ************[ Building interfaces ]************)
 	$(info ***********************************************)
-	@for dir in $(INTERFACES) ; do \
-		$(MAKE) -C $$dir ; \
-	done
+#	@for dir in $(INTERFACES) ; do \
+#		$(MAKE) -C $$dir ; \
+#	done
 
 .PHONY: clean
 clean:

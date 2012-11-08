@@ -94,32 +94,29 @@ struct pt_regs {
 
 #ifdef X86_64
 // I'm going to change the nameing scheme to break things. Levels 4 - 1, 4 being the highest (old PGDIR)
-// Okay, that did not go over well.
+// Okay, that did not go over well. -jcm
 #define SHIFT_4      39
 #define SIZE_4       (unsigned long)(1 << SHIFT_4)
 #define MASK_4       (unsigned long)(~(SIZE_4 - 1))
-#define PTRS_PER_4   512
 #define SHIFT_3      30
 #define SIZE_3       (unsigned long)(1 << SHIFT_3)
 #define MASK_3       (unsigned long)(~(SIZE_3 - 1))
-#define PTRS_PER_3   512
 #define SHIFT_2      21
 #define SIZE_2       (unsigned long)(1 << SHIFT_2)
 #define MASK_2       (unsigned long)(~(SIZE_2 - 1))
-#define PTRS_PER_2   512
 
 #define PAGE_MASK    (~(PAGE_SIZE-1))
-#define PGD_SHIFT    21 // This isn't 22? -jcm
-#define PGD_RANGE    (unsigned long)((unsigned long)1<<PGD_SHIFT) // Added cast jcm
-#define PGD_SIZE     PGD_RANGE
-#define PGD_MASK     (~(PGD_RANGE-1))
+#define PG_LVL2_SHIFT    21 // This isn't 22? -jcm
+#define PG_LVL2_RANGE    (unsigned long)((unsigned long)1<<PG_LVL2_SHIFT) // Added cast jcm
+#define PG_LVL2_SIZE     PG_LVL2_RANGE
+#define PGD_LVL2_MASK     (~(PG_LVL2_RANGE-1))
 
 #define PGD_PER_PTBL 512
 #define WORD_SIZE    64
 
 #else /* x86_32 implementation */
 #define PAGE_MASK    (~(PAGE_SIZE-1))
-#define PGD_SHIFT    21 // This isn't 22? -jcm
+#define PGD_SHIFT    22
 #define PGD_RANGE    (unsigned long)((unsigned long)1<<PGD_SHIFT) // Added cast jcm
 #define PGD_SIZE     PGD_RANGE
 #define PGD_MASK     (~(PGD_RANGE-1))

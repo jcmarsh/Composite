@@ -7,9 +7,10 @@ all:
 	$(info ***********************************************)
 	$(info *********[ Building Implementations ]**********)
 	$(info ***********************************************)
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) $(MAKEFLAGS) -C $$dir ; \
-	done
+#	@for dir in $(SUBDIRS) ; do \
+#		$(MAKE) $(MAKEFLAGS) -C $$dir ; \
+# 	done
+	$(MAKE) $(MAKEFLAGS) -C no_interface
 
 .PHONY: cp
 cp:
@@ -22,6 +23,7 @@ cp:
 clean:
 	$(info |     [RM]   Cleaning up implementation directories)
 	@for dir in $(SUBDIRS) ; do \
+		echo Hello $$dir ; \
 		$(MAKE) $(MAKEFLAGS) -C $$dir clean ; \
 	done
 

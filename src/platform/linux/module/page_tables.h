@@ -1,7 +1,7 @@
 /* not necessarily compiled in */
 #ifndef HPAGE_SHIFT
 #ifdef X86_64
-#define HPAGE_SHIFT	21
+
 #else
 #define HPAGE_SHIFT	22
 #endif /* X86_64 */

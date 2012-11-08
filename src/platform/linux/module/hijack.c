@@ -655,29 +655,15 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 			assert(spd == virtual_namespace_query(spd_info.lowest_addr+PAGE_SIZE));
 
-			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
-			printk("\t spd_info.lowest: %x\t spd_info.size %x\n", spd_info.lowest_addr, spd_info.size);
-			printk("\t COS_INFO_REG_AD: %x\t PGD_RANGE     %x\n", COS_INFO_REGION_ADDR, PGD_RANGE);
-		
-			printk("****************************************************\n");
-			printk("I AM SO CONFUSED RIGHT NOW!\n");
+
 			lookup_address_mm(mm, spd_info.lowest_addr);
 			lookup_address_mm(mm, COS_INFO_REGION_ADDR);
-			lookup_address_mm(mm, 0x40604000);
-			lookup_address_mm(current->mm, 0x40604000);
-			lookup_address_mm(mm, 0x40601000);
-			lookup_address_mm(current->mm, 0x40601000);
-			
-
+			// FIX THIS: Should need to call twice. Right now mapping in too much -jcm
+			printk("Fix this -jcm");
 			copy_pgd_range(mm, current->mm, spd_info.lowest_addr, spd_info.size);
 			//copy_pgd_range(mm, current->mm, COS_INFO_REGION_ADDR, PGD_RANGE);
-
 			lookup_address_mm(mm, spd_info.lowest_addr);
-			lookup_address_mm(mm, COS_INFO_REGION_ADDR);	
-			lookup_address_mm(mm, 0x40606000);
-
-			printk("****************************************************\n");
-			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
+			lookup_address_mm(mm, COS_INFO_REGION_ADDR);
 
 			cspd = spd_alloc_mpd();
 			if (!cspd) {
@@ -687,18 +673,15 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				return -1;
 			}
 
-			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
-			printk("Here we are. 0\n");
-			// In here?
+			// In here? -jcm
 			spd_set_location(spd, spd_info.lowest_addr, spd_info.size, (paddr_t)(__pa(mm->pgd)));
-			printk("Here we are. 1\n");
+
 			if (spd_composite_add_member(cspd, spd)) {
 				printk("cos: could not add spd %d to composite spd %d.\n",
 				       spd_get_index(spd), spd_mpd_index(cspd));
 				return -1;
 			}
-			printk("Here we are. 2\n");
-			printk("HALALALALALALALALALALALALALALALALALALALALA\n");
+
 			spd->pfn_base   = 0;
 			spd->pfn_extent = COS_MAX_MEMORY;
 /*
@@ -709,12 +692,12 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 */
 #ifdef NIL
 			/* To check the integrity of the created page table: */
-			//void print_valid_pgtbl_entries(paddr_t pt);
-			//print_valid_pgtbl_entries(spd->composite_spd->pg_tbl);
+			// TODO: Fix these! -jcm
+			void print_valid_pgtbl_entries(paddr_t pt);
+			print_valid_pgtbl_entries(spd->composite_spd->pg_tbl);
 #endif
 		}
 
-		printk("HALALALALALALALALALALALALALALALALALALALALA Goodbye\n");
 		return spd_get_index(spd);
 	}
 	case AED_SPD_ADD_CAP:
@@ -1785,15 +1768,12 @@ static int aed_open(struct inode *inode, struct file *file)
 	thd_init();
 	printk("SPD init\n");
 	spd_init();
-	// FIXME: jcm IPC.H
-
-
+	
 	printk("IPC init\n");
 	ipc_init();
 
-	// FIXME: jcm MMAP.H
 	printk("Memory init\n");
-	cos_init_memory();  // New source of hell.
+	cos_init_memory();
 
 	printk("Reg timers\n");
 	register_timers();

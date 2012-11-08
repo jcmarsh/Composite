@@ -2727,7 +2727,7 @@ static void setup_kernel(struct service_symbs *services)
 
 	thd.spd_handle = ((struct spd_info *)s->extern_info)->spd_handle;//spd0->spd_handle;
 
-	printl(PRINT_DEBUG, "JCM Greek C\n");
+	printl(PRINT_DEBUG, "JCM GAMMA\n");
 	cos_create_thd(cntl_fd, &thd);
 
 	printl(PRINT_HIGH, "\nOK, good to go, calling component 0's main\n\n");
@@ -2752,6 +2752,7 @@ static void setup_kernel(struct service_symbs *services)
 	rdtscll(start);
 	ret = fn();
 	rdtscll(end);
+	printl(PRINT_HIGH, "Result of spd0_main: %d\n", ret);
 	aed_enable_syscalls(cntl_fd);
 
 	printl(PRINT_HIGH, "Invocation takes %lld, ret %x.\n", (end-start)/ITER, ret);
