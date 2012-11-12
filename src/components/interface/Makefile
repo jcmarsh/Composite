@@ -10,6 +10,11 @@ all:
 #	@for dir in $(INTERFACES) ; do \
 #		$(MAKE) -C $$dir ; \
 #	done
+	$(MAKE) -C stkmgr
+	$(MAKE) -C sched
+	$(MAKE) -C sched_hier
+	$(MAKE) -C pgfault
+	$(MAKE) -C cgraph
 
 .PHONY: clean
 clean:

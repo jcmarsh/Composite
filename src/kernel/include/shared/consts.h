@@ -95,24 +95,27 @@ struct pt_regs {
 #ifdef X86_64
 // I'm going to change the nameing scheme to break things. Levels 4 - 1, 4 being the highest (old PGDIR)
 // Okay, that did not go over well. -jcm
-#define SHIFT_4      39
-#define SIZE_4       (unsigned long)(1 << SHIFT_4)
-#define MASK_4       (unsigned long)(~(SIZE_4 - 1))
-#define SHIFT_3      30
-#define SIZE_3       (unsigned long)(1 << SHIFT_3)
-#define MASK_3       (unsigned long)(~(SIZE_3 - 1))
-#define SHIFT_2      21
-#define SIZE_2       (unsigned long)(1 << SHIFT_2)
-#define MASK_2       (unsigned long)(~(SIZE_2 - 1))
+//#define SHIFT_4      39
+//#define SIZE_4       (unsigned long)(1 << SHIFT_4)
+//#define MASK_4       (unsigned long)(~(SIZE_4 - 1))
+//#define SHIFT_3      30
+//#define SIZE_3       (unsigned long)(1 << SHIFT_3)
+//#define MASK_3       (unsigned long)(~(SIZE_3 - 1))
+//#define SHIFT_2      21
+//#define SIZE_2       (unsigned long)(1 << SHIFT_2)
+//#define MASK_2       (unsigned long)(~(SIZE_2 - 1))
 
 #define PAGE_MASK    (~(PAGE_SIZE-1))
-#define PG_LVL2_SHIFT    21 // This isn't 22? -jcm
+#define PG_LVL2_SHIFT    21
 #define PG_LVL2_RANGE    (unsigned long)((unsigned long)1<<PG_LVL2_SHIFT) // Added cast jcm
 #define PG_LVL2_SIZE     PG_LVL2_RANGE
 #define PGD_LVL2_MASK     (~(PG_LVL2_RANGE-1))
 
 #define PGD_PER_PTBL 512
 #define WORD_SIZE    64
+
+#define round_to_pgd_page(x)    round_to_pow2(x, PG_LVL2_SIZE)
+#define round_up_to_pgd_page(x) round_up_to_pow2(x, PG_LVL2_SIZE)
 
 #else /* x86_32 implementation */
 #define PAGE_MASK    (~(PAGE_SIZE-1))
@@ -122,15 +125,19 @@ struct pt_regs {
 #define PGD_MASK     (~(PGD_RANGE-1))
 #define PGD_PER_PTBL 1024
 #define WORD_SIZE 32
+
+#define round_to_pgd_page(x)    round_to_pow2(x, PGD_SIZE)
+#define round_up_to_pgd_page(x) round_up_to_pow2(x, PGD_SIZE)
 #endif /* X86_64 */
+
+#define MEGS_4 1 << 22
 
 #define round_to_pow2(x, pow2)    (((unsigned long)(x))&(~(pow2-1)))
 #define round_up_to_pow2(x, pow2) (round_to_pow2(((unsigned long)x)+pow2-1, pow2))
 
 #define round_to_page(x)        round_to_pow2(x, PAGE_SIZE)
 #define round_up_to_page(x)     round_up_to_pow2(x, PAGE_SIZE)
-#define round_to_pgd_page(x)    round_to_pow2(x, PGD_SIZE)
-#define round_up_to_pgd_page(x) round_up_to_pow2(x, PGD_SIZE)
+
 
 //#define CACHE_LINE (32)
 #define CACHE_LINE (64) // Huh? -jcm
@@ -142,11 +149,11 @@ struct pt_regs {
 #define round_up_to_cacheline(x) round_up_to_pow2(x, CACHE_LINE)
 
 #define SHARED_REGION_START (unsigned long)(1<<30)  // 1 gig // Added cast jcm
-#define SHARED_REGION_SIZE PGD_RANGE
+#define SHARED_REGION_SIZE MEGS_4 // used to be pgd_range... see comment for SERVICE_SIZE -jcm
 #define SERVICE_START (SHARED_REGION_START+SHARED_REGION_SIZE)
 #define SERVICE_END   (SHARED_REGION_START+(unsigned long)(1<<30))
 /* size of virtual address spanned by one pgd entry */
-#define SERVICE_SIZE PGD_RANGE
+#define SERVICE_SIZE MEGS_4 // Used to pgd_range, since 4MB used to correspond to 1 big page but this is no longer true -jcm
 #define COS_INFO_REGION_ADDR SHARED_REGION_START
 #define COS_DATA_REGION_LOWER_ADDR (COS_INFO_REGION_ADDR+PAGE_SIZE)
 #define COS_DATA_REGION_MAX_SIZE (MAX_NUM_THREADS*PAGE_SIZE)

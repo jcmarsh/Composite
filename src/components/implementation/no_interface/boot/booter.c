@@ -471,9 +471,9 @@ void cos_init(void)
 	if (cos_vas_cntl(COS_VAS_SPD_EXPAND, cos_spd_id(), 
 			 round_up_to_pgd_page((unsigned long)&num_cobj), 
 			 (NREGIONS-1) * round_up_to_pgd_page(1))) {
-		printc("Could not expand boot component to %p:%x\n",
+		printc("Could not expand boot component to %p:%lx\n",
 		       (void *)round_up_to_pgd_page((unsigned long)&num_cobj), 
-		       (unsigned int)round_up_to_pgd_page(1)*3);
+		       (unsigned long)round_up_to_pgd_page(1)*3); // *3? Is that NREGIONS-1? -jcm
 		BUG();
 	}
 	printc("h @ %p, heap ptr @ %p\n", h, cos_get_heap_ptr());

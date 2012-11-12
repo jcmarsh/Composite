@@ -15,8 +15,8 @@ SOURCES=$(wildcard *.c)
 #NOTE: assembly files don't have dependencies generated for them
 SOURCE_DEPENDENCIES=$(SOURCES:%.c=%.d)
 
-#.PHONY: all
-#all: $(SOURCE_DEPENDENCIES) $(CLIB) subdirs
+.PHONY: all
+all: $(SOURCE_DEPENDENCIES) $(CLIB) subdirs
 
 subdirs:
 	@for dir in $(SUBDIRS) ; do \

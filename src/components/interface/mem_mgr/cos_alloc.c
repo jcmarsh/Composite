@@ -22,7 +22,7 @@
 
 //#define UNIX_TEST
 #ifdef UNIX_TEST
-#define PAGE_SIZE 4096
+#define PAGE_SIZE 4096 // TODO: This should be 2048... if it is actually run. -jcm
 #include <sys/mman.h>
 #else
 #include <cos_component.h>
@@ -45,7 +45,7 @@ static struct free_page page_list = {.next = NULL};
 
 extern void *mman_get_page(spdid_t spd, void *addr, int flags);
 extern void mman_release_page(spdid_t spd, void *addr, int flags);
-#endif
+#endif /* ifdef UNIX_TEST */
 
 #define DIE() (*((int*)0) = 0xDEADDEAD)
 #define massert(prop) do { if (!(prop)) DIE(); } while (0)
