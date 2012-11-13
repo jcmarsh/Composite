@@ -127,17 +127,17 @@ inline pte_t *pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr)
 	unsigned long mask = (unsigned long)1 << 63;
 
 	printk("XXXXXXXXXXX pgtbl %lx\t addr %lx\n", pgtbl, addr);
-	printk("XXXXXXXXXXX pgd: %p\t *pgd: %lx\n", pgd, *pgd);
+	//	printk("XXXXXXXXXXX pgd: %p\t *pgd: %lx\n", pgd, *pgd);
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		return NULL;
 	}
 	pud = pud_offset(pgd, addr);
-	printk("XXXXXXXXXXX pud: %p\t *pud: %lx\n", pud, *pud);
+	//	printk("XXXXXXXXXXX pud: %p\t *pud: %lx\n", pud, *pud);
 	if (pud_none(*pud) || pud_bad(*pud)) {
 		return NULL;
 	}
 	pmd = pmd_offset(pud, addr);
-	printk("XXXXXXXXXXX pmd: %p\t *pmd: %lx\n", pmd, *pmd);
+	//	printk("XXXXXXXXXXX pmd: %p\t *pmd: %lx\n", pmd, *pmd);
 	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
 		return NULL;
 	}
@@ -175,21 +175,21 @@ inline pte_t *lookup_address_mm(struct mm_struct *mm, unsigned long addr)
 	pteval_t fix_pte;
 	unsigned long mask = (unsigned long)1 << 63;
 	
-	printk("WWWWWWWWWWW mm %lx\t addr %lx\n", mm, addr);
-	printk("WWWWWWWWWWW pgd: %p\t *pgd: %lx\n", pgd, *pgd);
+	printk("WWWWWWWWWWW mm %p\t addr %lx\n", mm, addr);
+	//	printk("WWWWWWWWWWW pgd: %p\t *pgd: %lx\n", pgd, *pgd);
 	//printk("WWWWWWWWWWW va_*pgd: %lx\n", __va(pgd));
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		printk("Failure in lookup_address_mm, pgd is bad.\n");	 
 		return NULL;
 	}
 	pud = pud_offset(pgd, addr);
-	printk("WWWWWWWWWWW pud: %p\t *pud: %lx\n", pud, *pud);
+	//	printk("WWWWWWWWWWW pud: %p\t *pud: %lx\n", pud, *pud);
 	if (pud_none(*pud) || pud_bad(*pud)) {
 		printk("Failure in lookup_address_mm, pud is bad.\n");
 		return NULL;
 	}
 	pmd = pmd_offset(pud, addr);
-	printk("WWWWWWWWWWW pmd: %p\t *pmd: %lx\n", pmd, *pmd);
+	//	printk("WWWWWWWWWWW pmd: %p\t *pmd: %lx\n", pmd, *pmd);
 	if (pmd_none(*pmd) || pmd_bad(*pmd)) {
 		printk("Failure in lookup_address_mm, pmd is bad.\n");
 		return NULL;
@@ -218,8 +218,6 @@ vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 {
 	pte_t *pte = pgtbl_lookup_address(pgtbl, addr);
 	unsigned long kaddr;
-	vaddr_t *kaddrv;
-	unsigned long *kaddrp;
 
 	if (!pte || !(pte_val(*pte) & _PAGE_PRESENT)) {
 		return 0;
@@ -234,15 +232,10 @@ vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr)
 	 */
 
 	printk("In page_tables.c:pgtble_vaddr_to_kaddr\n");
-	printk("\t*pte: %lx\t, pte_val: %lx\n", *pte, pte_val(*pte));
+	printk("\t*pte: %p\t, pte_val: %lx\n", *pte, pte_val(*pte));
 	printk("\t MASKS, PTE: %lx, PAGE: %lx\n", PTE_MASK, PAGE_MASK);
 
 	kaddr = (unsigned long)__va(pte_val(*pte) & PTE_MASK) + (~PAGE_MASK & addr);
-	printk("\t kaddr: %lx\n", kaddr);
-	kaddrv = (vaddr_t)kaddr;
-	printk("\t kaddrv: %lx\n", kaddrv);
-	kaddrp = (unsigned long *)kaddrv;
-	printk("\t kaddrp: %lx\n", kaddrv);
 
 	return (vaddr_t)kaddr;
 }
@@ -272,7 +265,9 @@ inline void copy_pgd_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
 void copy_lvl2_range(struct mm_struct *to_mm, struct mm_struct *from_mm,
 		     unsigned long lower_addr, unsigned long size)
 {
-  pmd_t *fpmd = lookup_address_mm(from_mm, lower_addr); // Should already exist (if not mapped, can't copy)
+  // This needs to change. It should get the pmd, but without mapping anything in. -jcm
+  //  pmd_t *fpmd = lookup_address_mm(from_mm, lower_addr); // Should already exist (if not mapped, can't copy)
+  pmd_t *fpmd = pgtbl_fill_to_pmd(pgd_offset(from_mm, lower_addr), lower_addr); // Fix this -jcm
   pmd_t *tpmd = pgtbl_fill_to_pmd(pgd_offset(to_mm, lower_addr), lower_addr); // May not exist yet, so fill as needed.
   unsigned int span = hpage_index(size);
 

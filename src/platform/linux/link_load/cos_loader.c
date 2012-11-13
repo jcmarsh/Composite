@@ -2226,7 +2226,7 @@ static int make_cobj_symbols(struct service_symbs *s, struct cobj_header *h)
 	printl(PRINT_DEBUG, "%s loaded by Composite -- Symbols:\n", s->obj);
 	for (i = 0 ; map[i].name != NULL ; i++) {
 		addr = get_symb_address(&s->exported, map[i].name);
-		printl(PRINT_DEBUG, "\taddr %x, nsymb %d\n", addr, i);
+		printl(PRINT_DEBUG, "\taddr %lx, nsymb %d\n", addr, i);
 		if (addr && cobj_symb_init(h, symb_offset++, map[i].type, addr)) {
 			printl(PRINT_HIGH, "boot component: couldn't create cobj symb for %s (%d).\n", map[i].name, i);
 			return -1;

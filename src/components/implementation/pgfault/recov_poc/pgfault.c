@@ -54,7 +54,7 @@ int fault_page_fault_handler(spdid_t spdid, void *fault_addr, int flags, void *i
 	 * Look at the booter: when recover is happening, the sstub is
 	 * set to 0x1, thus we should just wait till recovery is done.
 	 */
-	if ((int)ip == 1) failure_notif_wait(cos_spd_id(), spdid);
+	if ((long)ip == 1) failure_notif_wait(cos_spd_id(), spdid);
 	else         failure_notif_fail(cos_spd_id(), spdid);
 
 	return 0;

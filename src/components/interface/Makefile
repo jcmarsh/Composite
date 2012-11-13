@@ -10,6 +10,7 @@ all:
 #	@for dir in $(INTERFACES) ; do \
 #		$(MAKE) -C $$dir ; \
 #	done
+	$(MAKE) -C initf
 	$(MAKE) -C stkmgr
 	$(MAKE) -C sched
 	$(MAKE) -C sched_hier

@@ -149,11 +149,11 @@ struct pt_regs {
 #define round_up_to_cacheline(x) round_up_to_pow2(x, CACHE_LINE)
 
 #define SHARED_REGION_START (unsigned long)(1<<30)  // 1 gig // Added cast jcm
-#define SHARED_REGION_SIZE MEGS_4 // used to be pgd_range... see comment for SERVICE_SIZE -jcm
-#define SERVICE_START (SHARED_REGION_START+SHARED_REGION_SIZE)
+#define SHARED_REGION_SIZE (MEGS_4) // used to be pgd_range... see comment for SERVICE_SIZE -jcm
+#define SERVICE_START ((SHARED_REGION_START)+(SHARED_REGION_SIZE))
 #define SERVICE_END   (SHARED_REGION_START+(unsigned long)(1<<30))
 /* size of virtual address spanned by one pgd entry */
-#define SERVICE_SIZE MEGS_4 // Used to pgd_range, since 4MB used to correspond to 1 big page but this is no longer true -jcm
+#define SERVICE_SIZE (MEGS_4) // Used to pgd_range, since 4MB used to correspond to 1 big page but this is no longer true -jcm
 #define COS_INFO_REGION_ADDR SHARED_REGION_START
 #define COS_DATA_REGION_LOWER_ADDR (COS_INFO_REGION_ADDR+PAGE_SIZE)
 #define COS_DATA_REGION_MAX_SIZE (MAX_NUM_THREADS*PAGE_SIZE)

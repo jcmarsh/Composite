@@ -1663,7 +1663,6 @@ static int aed_open(struct inode *inode, struct file *file)
 	pmd_t *pmd;
 	void* data_page;
 	unsigned long data_page_addr;
-	unsigned long james_test;
 
 	if (composite_thread != NULL || composite_union_mm != NULL) {
 		printk("cos: Composite subsystem already used by %d.\n", composite_thread->pid);
@@ -1721,9 +1720,9 @@ static int aed_open(struct inode *inode, struct file *file)
 	shared_region_pte[0].pte = ((unsigned long)(data_page) & PTE_MASK) |
 		(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED);
 	printk("WMWMWMW: shared_region_pte.pte: %lx\n", shared_region_pte[0].pte);
-	printk("WMWMWMW: shared_region_pte: %lx\n", shared_region_pte);
-	printk("WMWMWMW: data_page: %lx\n", data_page);
-	printk("WMWMWMW: shared_data_page: %lx\n", shared_data_page);
+	printk("WMWMWMW: shared_region_pte: %p\n", shared_region_pte);
+	printk("WMWMWMW: data_page: %p\n", data_page);
+	printk("WMWMWMW: shared_data_page: %p\n", shared_data_page);
 	
 	/* Where in the page directory should the pte go? */
 	// TODO: I really need to abstract this into a function. pgtbl_lookup_address and another function do the same thing. And I'm about to do it again for kern_mm -jcm
