@@ -1,3 +1,4 @@
 INTERFACES=printc
 
-include ../Makefile.subdir
+include ../Makefile.implementation.subdir
+

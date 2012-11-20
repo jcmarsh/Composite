@@ -1,16 +1,14 @@
 #include <cos_component.h>
-#include <sched.h>
+#include <sched_hier.h>
 
-volatile int blah = 0;
+int blah = 0;
 
-void cos_init(void *arg)
+//void cos_init(void *arg)
+int spd0_main(void)
 {
-	int other = *((int*)0);//, other2 = 10/blah;
+  int other = 10, i;
 
-	other = 10;
-}
-
-void bin(void)
-{
-	sched_block(cos_spd_id(), 0);
+  while (1) {
+    other++;
+  }
 }

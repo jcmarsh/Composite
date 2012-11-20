@@ -16,6 +16,7 @@ all:
 	$(MAKE) -C sched_hier
 	$(MAKE) -C pgfault
 	$(MAKE) -C cgraph
+	$(MAKE) -C printc
 
 .PHONY: clean
 clean:

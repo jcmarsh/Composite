@@ -161,7 +161,7 @@ struct sec_info ldobj[MAXSEC_S];
 #define MAX_TRUSTED 32
 #define MAX_SYMB_LEN 256
 
-typedef int (*observer_t)(asymbol *, void *data);
+typedef int (*observer_t)(asymbol *, void *data); // What? -jcm
 
 struct service_symbs;
 struct dependency;
@@ -345,7 +345,7 @@ static void findsections(bfd *abfd, asection *sect, PTR obj)
 	}
 }
 
-static int calc_offset(int offset, asection *sect)
+static int calc_offset(int offset, asection *sect) // This function may not be -jcm
 {
 	int align;
 	
@@ -361,7 +361,7 @@ static int calc_offset(int offset, asection *sect)
 	return offset;
 }
 
-static int calculate_mem_size(int first, int last) 
+static int calculate_mem_size(int first, int last) // I think that this function is okay -jcm
 {
 	int offset = 0;
 	int i;
@@ -381,7 +381,7 @@ static int calculate_mem_size(int first, int last)
 
 static void emit_address(FILE *fp, unsigned long addr)
 {
-	fprintf(fp, ". = 0x%x;\n", (unsigned int)addr);
+	fprintf(fp, ". = 0x%lx;\n", (unsigned long)addr);
 }
 
 static void emit_section(FILE *fp, char *sec)
@@ -2758,6 +2758,8 @@ static void setup_kernel(struct service_symbs *services)
 	printl(PRINT_HIGH, "Invocation takes %lld, ret %x.\n", (end-start)/ITER, ret);
 	
 	close(cntl_fd);
+	
+	printf("Leave Setup_Kernel -jcm\n");
 
 	return;
 }

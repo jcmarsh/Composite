@@ -13,7 +13,7 @@ int print_str(char *s, unsigned int len)
 //	int l = len;
 
 	if (!COS_IN_ARGREG(s) || !COS_IN_ARGREG(s + len)) {
-		snprintf(foo, MAX_LEN, "print argument out of bounds: %x", (unsigned int)s);
+		snprintf(foo, MAX_LEN, "print argument out of bounds: %lx", (unsigned long)s);
 		cos_print(foo, 0);
 		return -1;
 	}
