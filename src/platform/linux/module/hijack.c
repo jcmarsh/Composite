@@ -1788,7 +1788,6 @@ static int aed_open(struct inode *inode, struct file *file)
 }
 
 //extern void event_print(void);
-
 static int aed_release(struct inode *inode, struct file *file)
 {
 	pgd_t *pgd;
@@ -1797,6 +1796,7 @@ static int aed_release(struct inode *inode, struct file *file)
 #ifdef FAULT_DEBUG
 	int i, j, k;
 #endif
+
 	/* 
 	 * when the aed control file descriptor is closed, lets get
 	 * rid of all resources the aed environment was using, but

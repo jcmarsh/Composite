@@ -947,9 +947,14 @@ static void free_symbs(struct symb_type *st)
 
 static void free_service_symbs(struct service_symbs *str)
 {
-	free(str->obj);
+  printf("Freeing %p\n", str);
+  printf("\t obj: %p\n", str->obj);
+	free(&str->obj);
+	printf("\t str->exported: %p\n", &str->exported);
 	free_symbs(&str->exported);
+	printf("\t str->undef: %p\n", &str->undef);
 	free_symbs(&str->undef);
+	printf("\t str: %p\n", str);
 	free(str);
 
 	return;
@@ -2985,12 +2990,16 @@ int main(int argc, char *argv[])
 
 	ret = 0;
 
+	printl(PRINT_DEBUG, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"); // REMOVE -jcm
  dealloc_exit:
 	while (services) {
+	  	printl(PRINT_DEBUG, "ABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA\n"); // REMOVE -jcm
 		struct service_symbs *next = services->next;
 		free_service_symbs(services);
 		services = next;
+		printf("Sometimes I wonder what the value of this work is.\n");
 	}
+	printl(PRINT_DEBUG, "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\n"); // REMOVE -jcm
 	/* FIXME: new goto label to dealloc spds */
  exit:
 	return 0;

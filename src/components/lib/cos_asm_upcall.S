@@ -40,6 +40,7 @@ cos_static_stack_end:
 .type  cos_upcall_entry, @function
 .align 16
 cos_upcall_entry:
+	call cos_upcall_fn 	//FIXMEFIXMEFIXME: This will not work as we don't have a stack yet, but it will pull in libcos_component
 //	COS_ASM_GET_STACK
 
 //	xor %ebp, %ebp
@@ -100,6 +101,7 @@ cos_atomic_user4_end:
 	movq $0, %rax
 	movq (%rax), %rax
 #else /* x86_32 implementation */
+
 #define RET_CAP ((1<<20)-1)
 //#define IPRETURN 4 // already defined in asm_ipc_defs.h -jcm
 
@@ -158,7 +160,7 @@ cos_atomic_cmpxchg:
 .weak cos_atomic_cmpxchg_end
 cos_atomic_cmpxchg_end:	
 	ret
-
+	
 /*
  * %eax = semaphore_addr, %ebx = thread_id, %ecx = count
  */

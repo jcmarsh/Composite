@@ -2,7 +2,7 @@ C_OBJS=inv_test.o
 ASM_OBJS=
 COMPONENT=james.o
 INTERFACES=
-DEPENDENCIES=sched_hier
+DEPENDENCIES=sched_hier printc
 IF_LIB=
 
 include ../../Makefile.subsubdir

@@ -195,8 +195,16 @@ struct exec_evt {
 	char *msg;
 };
 
-#ifndef cos_rdtscll
+#ifndef cos_rdtscll // FIXME: This is defined elsewhere as rdtscll, maybe combine? -jcm
+#ifdef X86_64
+#define cos_rdtscll(val)                               \
+  __asm__ ("rdtsc\n\t"                                 \
+           "shl $(32), %%rdx\n\t"                      \
+	   "or %%rax, %%rdx" : "=d" (val) : : "rax")
+
+#else /* x86_32 implementation */
 #define cos_rdtscll(val) __asm__ __volatile__("rdtsc" : "=A" (val))
+#endif /* X86_64 */
 #endif
 
 extern struct exec_evt recorded_evts[];

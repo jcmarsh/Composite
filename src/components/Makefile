@@ -5,12 +5,12 @@ MAKEFLAGS=-I$(shell pwd)
 
 ENABLE_STK:=${shell grep ENABLE_STACK_MANAGER include/cos_stkmgr_configure.h | awk '{print $$3 }' }
 
-#$(info ENABLE_STK = "${ENABLE_STK}")
+$(info ENABLE_STK = "${ENABLE_STK}")
 
 # This is confusing. ENABLE_STACK_MANAGER is checked in an ifdef, which doesn't check what it is defined as. 
-#ifeq ($(ENABLE_STK), 1) 
-#export ENABLE_STACK_MANAGER:=1
-#endif
+ifeq ($(ENABLE_STK), 1) 
+export ENABLE_STACK_MANAGER:=1
+endif
 
 ifdef ENABLE_STACK_MANAGER 
  $(info ####### Stack Manager is Enabled #######)

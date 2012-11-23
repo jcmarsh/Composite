@@ -12,7 +12,7 @@ all:
 # 	done
 	$(MAKE) $(MAKEFLAGS) -C no_interface
 	$(MAKE) $(MAKEFLAGS) -C initf
-#	$(MAKE) $(MAKEFLAGS) -C printc
+	$(MAKE) $(MAKEFLAGS) -C printc
 #	$(MAKE) $(MAKEFLAGS) -C stkmgr
 #	$(MAKE) $(MAKEFLAGS) -C sched
 #	$(MAKE) $(MAKEFLAGS) -C sched_hier // Should be in sched -jcm
@@ -27,7 +27,7 @@ cp:
 #	done
 	$(MAKE) $(MAKEFLAGS) -C no_interface cp
 	$(MAKE) $(MAKEFLAGS) -C initf cp
-#	$(MAKE) $(MAKEFLAGS) -C printc cp
+	$(MAKE) $(MAKEFLAGS) -C printc cp
 #	$(MAKE) $(MAKEFLAGS) -C stkmgr cp
 #	$(MAKE) $(MAKEFLAGS) -C sched cp
 #	$(MAKE) $(MAKEFLAGS) -C sched_hier cp
@@ -43,7 +43,7 @@ clean:
 #	done
 	$(MAKE) $(MAKEFLAGS) -C no_interface clean
 	$(MAKE) $(MAKEFLAGS) -C initf clean
-#	$(MAKE) $(MAKEFLAGS) -C printc clean
+	$(MAKE) $(MAKEFLAGS) -C printc clean
 #	$(MAKE) $(MAKEFLAGS) -C stkmgr clean
 #	$(MAKE) $(MAKEFLAGS) -C sched clean
 #	$(MAKE) $(MAKEFLAGS) -C sched_hier clean
