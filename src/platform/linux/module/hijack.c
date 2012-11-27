@@ -1791,6 +1791,8 @@ static int aed_open(struct inode *inode, struct file *file)
 static int aed_release(struct inode *inode, struct file *file)
 {
 	pgd_t *pgd;
+	pud_t *pud;
+	pmd_t *pmd;
 	struct thread *t;
 	struct spd *s;
 #ifdef FAULT_DEBUG
@@ -1852,8 +1854,11 @@ static int aed_release(struct inode *inode, struct file *file)
 	 * free the shared region...
 	 * FIXME: should also kill the actual pages of shared memory
 	 */
+	// TODO: Fix this. With this the shared region is only 2MB -jcm
 	pgd = pgd_offset(composite_union_mm, COS_INFO_REGION_ADDR);
-	memset(pgd, 0, sizeof(int));
+	pud = pud_offset(pgd, COS_INFO_REGION_ADDR);
+	pmd = pmd_offset(pud, COS_INFO_REGION_ADDR);
+	memset(pmd, 0, sizeof(long));
 
 	/* 
 	 * Keep the mm_struct around till we have gotten rid of our

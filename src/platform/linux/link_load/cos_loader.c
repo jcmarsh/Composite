@@ -947,14 +947,9 @@ static void free_symbs(struct symb_type *st)
 
 static void free_service_symbs(struct service_symbs *str)
 {
-  printf("Freeing %p\n", str);
-  printf("\t obj: %p\n", str->obj);
-	free(&str->obj);
-	printf("\t str->exported: %p\n", &str->exported);
+	free(str->obj);
 	free_symbs(&str->exported);
-	printf("\t str->undef: %p\n", &str->undef);
 	free_symbs(&str->undef);
-	printf("\t str: %p\n", str);
 	free(str);
 
 	return;
@@ -2641,6 +2636,7 @@ static void setup_kernel(struct service_symbs *services)
 	printl(PRINT_HIGH, "\nEntered setup_kernel\n\n");
 	fflush(stdout);
 
+
 	while (s) {
 		struct service_symbs *t;
 		struct spd_info *t_spd;
@@ -2740,6 +2736,7 @@ static void setup_kernel(struct service_symbs *services)
 
 	fn = (int (*)(void))get_symb_address(&s->exported, "spd0_main");
 
+
 #define ITER 1
 #ifdef X86_64
 #define rdtscll(value)				       \
@@ -2757,11 +2754,12 @@ static void setup_kernel(struct service_symbs *services)
 	rdtscll(start);
 	ret = fn();
 	rdtscll(end);
+
 	printl(PRINT_HIGH, "Result of spd0_main: %d\n", ret);
 	aed_enable_syscalls(cntl_fd);
 
 	printl(PRINT_HIGH, "Invocation takes %lld, ret %x.\n", (end-start)/ITER, ret);
-	
+
 	close(cntl_fd);
 	
 	printf("Leave Setup_Kernel -jcm\n");
@@ -2955,7 +2953,7 @@ int main(int argc, char *argv[])
 
 	print_objs_symbs(services);
 
-//	printl(PRINT_DEBUG, "Loading at %x:%d.\n", BASE_SERVICE_ADDRESS, DEFAULT_SERVICE_SIZE);
+	printl(PRINT_DEBUG, "Loading at %x:%d.\n", BASE_SERVICE_ADDRESS, DEFAULT_SERVICE_SIZE);
 
 	if (!dependencies) {
 		printl(PRINT_HIGH, "No dependencies given, not proceeding.\n");
@@ -2990,16 +2988,12 @@ int main(int argc, char *argv[])
 
 	ret = 0;
 
-	printl(PRINT_DEBUG, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"); // REMOVE -jcm
  dealloc_exit:
 	while (services) {
-	  	printl(PRINT_DEBUG, "ABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA\n"); // REMOVE -jcm
 		struct service_symbs *next = services->next;
 		free_service_symbs(services);
 		services = next;
-		printf("Sometimes I wonder what the value of this work is.\n");
 	}
-	printl(PRINT_DEBUG, "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\n"); // REMOVE -jcm
 	/* FIXME: new goto label to dealloc spds */
  exit:
 	return 0;
