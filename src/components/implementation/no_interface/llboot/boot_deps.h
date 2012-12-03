@@ -294,7 +294,7 @@ cos_upcall_fn(upcall_type_t t, void *arg1, void *arg2, void *arg3)
 #include <sched_hier.h>
 
 void cos_init(void);
-int  sched_init(void)   { cos_init(); return 0; }
+int  sched_init(void)   { cos_init(); cos_print("HAHAHA", 7); return 0; }
 int  sched_isroot(void) { return 1; }
 void 
 sched_exit(void)

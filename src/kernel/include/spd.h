@@ -70,7 +70,7 @@ struct invocation_cap {
 	 * (owner), and the spd that invocations are made to. owner ==
 	 * NULL means that this entry is free and not in use.  */
 	struct spd *owner, *destination;
-	unsigned int invocation_cnt:30;
+	unsigned long invocation_cnt:30;
 	isolation_level_t il:2;
 	vaddr_t dest_entry_instruction;
 	/* 
@@ -152,7 +152,7 @@ struct spd_location {
 	unsigned long size;
 };
 
-typedef int mmaps_t;
+typedef int mmaps_t; // FIXME: Wrong? -jcm
 
 struct spd {
 	/* data touched on the ipc hotpath (32 bytes)*/
@@ -162,9 +162,9 @@ struct spd {
 	 * point directly to spd->spd_info, or
 	 * a composite_spd->spd_info 
 	 */
-	struct spd_poly /*composite_spd*/ *composite_spd; 
-	
-	unsigned short int cap_base, cap_range;
+	struct spd_poly /*composite_spd*/ *composite_spd;
+
+        unsigned short int cap_base, cap_range; // FIXME: Why shorts? -jcm
 	/* numbered faults correspond to which capability? */
 	unsigned short int fault_handler[COS_FLT_MAX];
 	/*
@@ -190,7 +190,7 @@ struct spd {
 	
 	vaddr_t atomic_sections[COS_NUM_ATOMIC_SECTIONS];
 	
-	unsigned int pfn_base, pfn_extent;
+        unsigned int pfn_base, pfn_extent; // FIXME: should this change? -jcm
 
 	/* should be a union to not waste space */
 	struct spd *freelist_next;
@@ -229,14 +229,14 @@ int spd_cap_set_sstub(struct spd *spd, int cap, vaddr_t fn);
 int spd_cap_set_sfn(struct spd *spd, int cap, vaddr_t fn);
 int spd_cap_set_fault_handler(struct spd *spd, int cap, int handler_num);
 
-unsigned int spd_add_static_cap(struct spd *spd, vaddr_t service_entry_inst, struct spd *trusted_spd, 
+unsigned long spd_add_static_cap(struct spd *spd, vaddr_t service_entry_inst, struct spd *trusted_spd, 
 				isolation_level_t isolation_level);
-unsigned int spd_add_static_cap_extended(struct spd *spd, struct spd *trusted_spd, 
+unsigned long spd_add_static_cap_extended(struct spd *spd, struct spd *trusted_spd, 
 					 int cap_offset, vaddr_t ST_entry_fn,
 					 vaddr_t AT_cli_stub, vaddr_t AT_serv_stub,
 					 vaddr_t SD_cli_stub, vaddr_t SD_serv_stub,
 					 isolation_level_t isolation_level, int flags);
-isolation_level_t cap_change_isolation(int cap_num, isolation_level_t il, int flags);
+isolation_level_t cap_change_isolation(long cap_num, isolation_level_t il, int flags);
 int cap_is_free(int cap_num);
 unsigned long spd_read_reset_invocation_cnt(struct spd *cspd, struct spd *sspd);
 struct invocation_cap *inv_cap_get(int c_num);
@@ -382,7 +382,7 @@ static inline int spd_composite_member(struct spd *spd, struct spd_poly *poly)
 
 #else /* ASM */
 
-/* WRONG */
+/* FIXME: WRONG -jcm */
 #define SPD_CAP_TBL_PTR 8
 #define SPD_CAP_TBL_SZ 12
 #define SPD_LOWER_ADDR 0

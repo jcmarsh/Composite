@@ -37,7 +37,7 @@ unsigned long shared_data_page[1024] PAGE_ALIGNED;
 
 extern struct invocation_cap invocation_capabilities[MAX_STATIC_CAP];
 
-struct inv_ret_struct {
+struct inv_ret_struct { // If this changes, will need to change ipc.S -jcm
 	int thd_id;
 	int spd_id;
 };
@@ -145,27 +145,35 @@ void print_regs(struct pt_regs *regs)
  * isolation level isolation access from caller, 2) all return 0
  * should kill thread.
  */
+// Changed capability to long so that the assembly would be clearer (all pushqs) -jcm
 COS_SYSCALL vaddr_t 
-ipc_walk_static_cap(struct thread *thd, unsigned int capability, vaddr_t sp, 
+ipc_walk_static_cap(struct thread *thd, unsigned long capability, vaddr_t sp, 
 		    vaddr_t ip, struct inv_ret_struct *ret)
 {
 	struct thd_invocation_frame *curr_frame;
 	struct spd *curr_spd, *dest_spd;
 	struct invocation_cap *cap_entry;
 
-	capability >>= 20;
+	printk("Capability: %lx\n", capability);
+
+	capability >>= 20; // What is this 20?
+
+	printk("Capability: %lx\n", capability);
+
+	printk("I MADE IT!\n");
 
 	if (unlikely(capability >= MAX_STATIC_CAP)) {
 		struct spd *t = virtual_namespace_query(ip);
-		printk("cos: capability %d greater than max from spd %d @ %x.\n", 
-		       capability, (t) ? spd_get_index(t): 0, (unsigned int)ip);
+		printk("MAX_STATIC_CAP: %d\n", MAX_STATIC_CAP);
+		printk("cos: capability %ld greater than max from spd %d @ %lx.\n", 
+		       capability, (t) ? spd_get_index(t): 0, (unsigned long)ip);
 		return 0;
 	}
 
 	cap_entry = &invocation_capabilities[capability];
 
 	if (unlikely(!cap_entry->owner)) {
-		printk("cos: No owner for cap %d.\n", capability);
+		printk("cos: No owner for cap %ld.\n", capability);
 		return 0;
 	}
 
@@ -195,7 +203,7 @@ ipc_walk_static_cap(struct thread *thd, unsigned int capability, vaddr_t sp,
 	 * this.
 	 */
 	if (unlikely(!thd_spd_in_composite(curr_frame->current_composite_spd, curr_spd))) {
-		printk("cos: Error, incorrect capability (Cap %d has spd %d, stk @ %d has %d).\n",
+		printk("cos: Error, incorrect capability (Cap %ld has spd %d, stk @ %d has %d).\n",
 		       capability, spd_get_index(curr_spd), thd->stack_ptr, spd_get_index(curr_frame->spd));
 		print_stack(thd);
 		/* 
@@ -220,7 +228,10 @@ ipc_walk_static_cap(struct thread *thd, unsigned int capability, vaddr_t sp,
 	thd_invocation_push(thd, cap_entry->destination, sp, ip);
 	cap_entry->invocation_cnt++;
 
-//	printk("%d: %d->%d\n", thd_get_id(thd), spd_get_index(curr_spd), spd_get_index(dest_spd));
+	printk("%d: %d->%d\n", thd_get_id(thd), spd_get_index(curr_spd), spd_get_index(dest_spd));
+
+	printk("ret->thd_id: %d\t ret->spd_id: %d\n", ret->thd_id, ret->spd_id);
+	printk("I MADE IT! AGAIN!\n");
 
 	return cap_entry->dest_entry_instruction;
 }

@@ -704,7 +704,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	{
 		struct cap_info cap_info;
 		struct spd *owner, *dest;
-		int cap_no;
+		unsigned long cap_no;
 
 		if (copy_from_user(&cap_info, (void*)arg, 
 				   sizeof(struct cap_info))) {
@@ -727,6 +727,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		cap_no = spd_add_static_cap_extended(owner, dest, cap_info.rel_offset, 
 						     cap_info.ST_serv_entry, cap_info.AT_cli_stub, cap_info.AT_serv_stub,
 						     cap_info.SD_cli_stub, cap_info.SD_serv_stub, cap_info.il, cap_info.flags);
+		printk("Hijack.c has added a cap: #%ld\n", cap_no);
 		return cap_no;
 
 	}

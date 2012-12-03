@@ -149,7 +149,7 @@ static short int spd_alloc_capability_range(int range)
 }
 
 static inline void cap_set_usr_cap(struct usr_inv_cap *uptr, vaddr_t inv_fn, 
-				   unsigned int inv_cnt, unsigned int cap_no)
+				   unsigned long inv_cnt, unsigned long cap_no)
 {
 	uptr->invocation_fn = inv_fn;
 	uptr->service_entry_inst = inv_fn;
@@ -160,10 +160,10 @@ static inline void cap_set_usr_cap(struct usr_inv_cap *uptr, vaddr_t inv_fn,
 	return;
 }
 
-static inline struct usr_inv_cap *cap_get_usr_cap(int cap_num)
+static inline struct usr_inv_cap *cap_get_usr_cap(long cap_num)
 {
 	struct spd *owner;
-	int ucap;
+	long ucap;
 
 	if (cap_is_free(cap_num)) return NULL;
 
@@ -173,7 +173,7 @@ static inline struct usr_inv_cap *cap_get_usr_cap(int cap_num)
 	return &owner->user_cap_tbl[ucap];
 }
 
-static inline int cap_reset_cap_inv_cnt(int cap_num, int *inv_cnt)
+static inline int cap_reset_cap_inv_cnt(long cap_num, long *inv_cnt)
 {
 	struct usr_inv_cap *ucap;
 	struct invocation_cap *cap;
@@ -205,7 +205,7 @@ static inline int cap_reset_cap_inv_cnt(int cap_num, int *inv_cnt)
 /* 
  * FIXME: access control
  */
-isolation_level_t cap_change_isolation(int cap_num, isolation_level_t il, int flags)
+isolation_level_t cap_change_isolation(long cap_num, isolation_level_t il, int flags)
 {
 	isolation_level_t prev;
 	struct invocation_cap *cap;
@@ -213,7 +213,7 @@ isolation_level_t cap_change_isolation(int cap_num, isolation_level_t il, int fl
 	struct usr_inv_cap *ucap;
 
 	if (cap_num >= MAX_STATIC_CAP) {
-		printk("Attempting to change isolation level of invalid cap %d.\n", cap_num);
+		printk("Attempting to change isolation level of invalid cap %ld.\n", cap_num);
 		return IL_INV;
 	}
 
@@ -238,7 +238,12 @@ isolation_level_t cap_change_isolation(int cap_num, isolation_level_t il, int fl
 	if (flags & CAP_SAVE_REGS) {
 		/* set highest order bit to designate saving of
 		 * registers. */
+	  // FIXME - jcm
+#ifdef X86_64
+		cap_num = (cap_num<<20)|0x8000000000000000; 
+#else
 		cap_num = (cap_num<<20)|0x80000000; 
+#endif
 	} else {
 		cap_num <<= 20;
 	}
@@ -596,7 +601,7 @@ struct spd *spd_get_by_index(int idx)
 /* 
  * Static Capability Manipulation Functions
  */
-unsigned int spd_add_static_cap(struct spd *owner_spd, vaddr_t ST_serv_entry, 
+unsigned long spd_add_static_cap(struct spd *owner_spd, vaddr_t ST_serv_entry, 
 				struct spd *trusted_spd, isolation_level_t isolation_level)
 {
 	return spd_add_static_cap_extended(owner_spd, trusted_spd, -1, ST_serv_entry, 0, 0, 0, 0, isolation_level, 0);
@@ -688,14 +693,14 @@ int spd_cap_activate(struct spd *spd, int cap)
  * Return the capability number allocated, or 0 on error (too many
  * static capabilities allocated).
  */
-unsigned int spd_add_static_cap_extended(struct spd *owner_spd, struct spd *trusted_spd, 
+unsigned long spd_add_static_cap_extended(struct spd *owner_spd, struct spd *trusted_spd, 
 					 int cap_offset, vaddr_t ST_serv_entry, 
 					 vaddr_t AT_cli_stub, vaddr_t AT_serv_stub, 
 					 vaddr_t SD_cli_stub, vaddr_t SD_serv_stub,
 					 isolation_level_t isolation_level, int flags)
 {
 	struct invocation_cap *new_cap;
-	int cap_num;
+	unsigned long cap_num;
 	struct usr_cap_stubs *stubs;
 
 	if (!owner_spd || !trusted_spd || owner_spd->user_vaddr_cap_tbl == NULL) {
@@ -744,10 +749,11 @@ unsigned int spd_add_static_cap_extended(struct spd *owner_spd, struct spd *trus
 	/* and user-level representation (touching user-level pages here) */
 //	cap_set_usr_cap(cap_get_usr_cap(usr_cap_num), ST_serv_entry, 0, cap_num);
 	if (cap_change_isolation(cap_num, isolation_level, flags) == IL_INV) {
-		printk("Unrecognized isolation level for cap # %d.\n", cap_num);
+		printk("Unrecognized isolation level for cap # %ld.\n", cap_num);
 		return 0;
 	}
 
+	printk("added cap # %lx\n", cap_num); // FIXME: remove -jcm
 	return cap_num;
 }
 
@@ -1197,7 +1203,7 @@ next:
 unsigned long spd_read_reset_invocation_cnt(struct spd *cspd, struct spd *sspd)
 {
 	unsigned long tot = 0;
-	unsigned int cnt = 0;
+	unsigned long cnt = 0;
 	int i, cap_lo, cap_hi;
 	assert(cspd && sspd);
 

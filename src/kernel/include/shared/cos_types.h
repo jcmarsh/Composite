@@ -224,9 +224,9 @@ struct restartable_atomic_sequence {
 };
 
 /* see explanation in spd.h */
-struct usr_inv_cap {
+struct usr_inv_cap { // Here we are. Do we change to longs, or change the assembly?
 	vaddr_t invocation_fn, service_entry_inst;
-	unsigned int invocation_count, cap_no;
+	unsigned long invocation_count, cap_no;
 } HALF_CACHE_ALIGNED; 
 
 #define COMP_INFO_POLY_NUM 10

@@ -8,10 +8,14 @@ extern int main(void);
 
 int spd0_main(void)
 {
-  main();
-	sched_init();
+        main();
 	
-	nothing = ret + 1;
+	cos_print("In comp0:spd0_main\n", 20);
+	
+	nothing = sched_init();
+	
+	
+	// nothing = ret + 1;
 	//prevent_tail_call(ret);
-	return ret;
+	return nothing;
 }

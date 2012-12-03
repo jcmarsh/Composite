@@ -88,11 +88,6 @@ cos_syscall_thunk:
 	/* cos syscalls may call linux functions... not supported yet */
 	jmp composite_make_syscall
 
-composite_call_ipc:
-	/* not yet implemented */
-	call test_function2
-	jmp cos_exit
-
 composite_ret_ipc:
 	/* not yet implemented */
 	call test_function3

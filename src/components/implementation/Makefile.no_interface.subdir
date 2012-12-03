@@ -24,9 +24,8 @@ subdirs:
 #	done
 	$(MAKE) -C comp0
 	$(MAKE) -C james_test
-#	$(MAKE) -C cpu
+	$(MAKE) -C cpu
 	$(MAKE) -C llboot
-#	$(MAKE) -C james
 
 $(CLIB):$(OBJS)
 ifneq ($(strip $(OBJS)),)
@@ -59,9 +58,8 @@ cp:
 #	done
 	$(MAKE) -C comp0 cp
 	$(MAKE) -C james_test cp
-#	$(MAKE) -C cpu cp
+	$(MAKE) -C cpu cp
 	$(MAKE) -C llboot cp
-#	$(MAKE) -C james cp
 
 .PHONY: clean
 clean:
@@ -72,9 +70,8 @@ clean:
 #	done
 	$(MAKE) -C comp0 clean
 	$(MAKE) -C james_test clean
-#	$(MAKE) -C cpu clean
+	$(MAKE) -C cpu clean
 	$(MAKE) -C llboot clean
-#	$(MAKE) -C james clean
 
 fresh: clean all
 

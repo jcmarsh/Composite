@@ -16,14 +16,56 @@
 #include "calling64.h"
 .text
 
+#define RET_TO_USER_NOSEG \
+	pushq $0; \
+	pushq $0; \
+	sysretq
+	
 /* NOTHING IS IMPLEMENTED YET! Except syscall. */
 kernel_ipc_syscall:
 	ERROR_OUT
 	
+/*
+ * Register layout:
+ *
+ * rax:	which capability, see comment in kern_entry.S:asym_exec_dom_entry
+ * r8:	ip
+ * r9:	sp
+ * rsi,rdx,r10,rdi: arguments
+ */
 .globl composite_call_ipc
 .align 32
-composite_call_ipc:
-	ERROR_OUT
+composite_call_ipc:	/* server_inv: */
+	// This is screwed up. I'm following the composite call conventions, which differ from the System 5 ABI
+
+	subq $16, %rsp // For struct inv_ret_struct. Will need to change if that changes! -jcm
+	//pushq %rsp // r8
+	movq  %r8, %rcx
+	movq  %rsp, %r8
+	/* invoke ipc_walk_static_cap */
+	//pushq %r8 /* ip */ // rcx
+	//pushq %r9 /* sp */ // rdx
+	movq  %r9, %rdx
+	//pushq %rax /* cap */ // rsi
+	movq  %rax, %rsi
+	//pushq current_thread // rdi
+	movq  current_thread, %rdi
+
+	call ipc_walk_static_cap
+	/* %rax = handler fn in server */
+	cmpq $0, %rax /* error? */
+	jz composite_call_err
+	
+	//addl $20, %esp // What is this doing?
+	movq %rax, %rdi
+
+	/* thd and spdid */
+	popq %rax
+	popq %rax
+
+	//popl %ebp /* 4th argument */
+
+	RET_TO_USER_NOSEG
 		
 .globl composite_ret_ipc
 .align 16
@@ -113,6 +155,7 @@ composite_make_syscall:
 
 .align 16
 composite_call_err:
+	movq $511, %r11
 	ERROR_OUT
 
 /* global so that can see it in error reports if we crash */

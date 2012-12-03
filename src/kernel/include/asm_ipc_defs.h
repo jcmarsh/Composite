@@ -13,13 +13,13 @@
 
 /* user capability structure offsets (cos_types.h usr_inv_cap)*/
 /* really 16, see below for use (mult index reg by 2) */
-#define UCAP_SZ 6 		/* # of longs */
-#define UCAP_SZ_STR "6"
-#define SIZEOFUSERCAP (UCAP_SZ * 4) // We need 24 (2 quads, 2 longs) bytes, but they are reserved as .longs. 
+#define UCAP_SZ 8 		/* # of longs */
+#define UCAP_SZ_STR "8"
+#define SIZEOFUSERCAP (UCAP_SZ * 4) // We need 32 (4 quads) bytes, but they are reserved as .longs. 
 #define INVFN 0
 #define ENTRYFN 8
 #define INVOCATIONCNT 16
-#define CAPNUM 20
+#define CAPNUM 24
 #else /* x86_32 implementation */
 /* the offset on the stack to the fn return address for trust cases */
 //#define IPRETURN 12 // saving ecx & edx??
