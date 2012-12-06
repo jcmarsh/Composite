@@ -57,11 +57,11 @@ composite_call_ipc:	/* server_inv: */
 	jz composite_call_err
 	
 	//addl $20, %esp // What is this doing?
-	movq %rax, %rdi
+	movq %rax, %rcx // rcx is the return instruction pointer
 
 	/* thd and spdid */
-	popq %rax
-	popq %rax
+	popq %r9
+	popq %r8
 
 	//popl %ebp /* 4th argument */
 

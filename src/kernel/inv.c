@@ -37,9 +37,9 @@ unsigned long shared_data_page[1024] PAGE_ALIGNED;
 
 extern struct invocation_cap invocation_capabilities[MAX_STATIC_CAP];
 
-struct inv_ret_struct { // If this changes, will need to change ipc.S -jcm
-	int thd_id;
-	int spd_id;
+struct inv_ret_struct { // Changed to long, to make the assembly in ipc.S simplier
+	long thd_id;
+	long spd_id;
 };
 
 static inline struct shared_user_data *get_shared_data(void)
@@ -3575,6 +3575,7 @@ cos_syscall_vas_cntl(int id, int op_spdid, long addr, long sz)
 		ret = -1;
 		break;
 	case COS_VAS_SPD_EXPAND:	/* allocate more vas to spd */
+	  printk("Size: %lx\n", sz);
 		if (spd_add_location(spd, addr, sz)) ret = -1;
 		break;
 	case COS_VAS_SPD_RETRACT:	/* deallocate some vas from spd */

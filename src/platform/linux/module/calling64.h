@@ -96,6 +96,5 @@
 	swapgs
 
 #define ERROR_OUT \
-  movq $17, %rdi; \ // TODO: remove this line -jcm
-  movq $0, %rax; \
+  movq $0, %rax;				\
   movq (%rax), %rax

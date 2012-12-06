@@ -30,9 +30,9 @@ name##_inv:					\
         COS_ASM_GET_STACK			\
 	pushq %rbp;				\
 	xor %rbp, %rbp;				\
-        pushq %r10;				\
-        pushq %rdx;				\
-        pushq %rsi;				\
+	movq %rsi, %rdi;                        \
+	movq %rdx, %rsi;                        \
+	movq %r10, %rdx;                        \
         call name ;				\
         addq $32, %rsp;				\
   						\

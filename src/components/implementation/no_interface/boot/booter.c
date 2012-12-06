@@ -468,6 +468,7 @@ void cos_init(void)
 
 	boot_find_cobjs(h, num_cobj);
 	/* This component really might need more vas, get the next 4M region */
+	printc("NREGIONS: %d\t rutpp: %lx\t Size: %lx\n", NREGIONS, round_up_to_pgd_page(1), (NREGIONS-1) * round_up_to_pgd_page(1)); 
 	if (cos_vas_cntl(COS_VAS_SPD_EXPAND, cos_spd_id(), 
 			 round_up_to_pgd_page((unsigned long)&num_cobj), 
 			 (NREGIONS-1) * round_up_to_pgd_page(1))) {

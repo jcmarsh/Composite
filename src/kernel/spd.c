@@ -542,17 +542,24 @@ int spd_add_location(struct spd *spd, long base, long size)
 {
 	int ret = 0;
 	int i;
-	
+
+	printd("HAHAHAHAHAHA. I am the law!!!!!!\n");
 	if (!spd->spd_info.pg_tbl) goto err;
+	printd("SPACE CATS: 1\n");
 	/* the beginning address must be on a 4M boundary,
 	 * and 4M in size (for now) */ // Need to accomodate this! -jcm
+	printd("Service Size: %lx\t Size: %lx\n", SERVICE_SIZE, size);
 	if (((base & (SERVICE_SIZE-1)) != 0)/* || size != SERVICE_SIZE */) goto err;
+	printd("SPACE CATS: 2\n");
 	for (i = 0 ; i < MAX_SPD_VAS_LOCATIONS ; i++) {
 		if (0 == spd->location[i].size) break;
 	}
+	printd("SPACE CATS: 3\n");
 	if (i == MAX_SPD_VAS_LOCATIONS) goto err;
+	printd("SPACE CATS: 4\n");
 	/* virtual address already reserved? */
 	if (!virtual_namespace_alloc(spd, base, size)) goto err;
+	printd("SPACE CATS: 5\n");
 
 	spd->location[i].lowest_addr = base;
 	spd->location[i].size = size;

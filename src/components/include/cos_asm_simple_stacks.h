@@ -5,8 +5,8 @@
 /* UNTESTED */
 #define COS_ASM_GET_STACK \
   movq $cos_static_stack, %rsp; \
-  shl  $12, %rax; \
-  addq %rax, %rsp;
+  shl  $12, %r9; \
+  addq %r9, %rsp;
 #else
 #define COS_ASM_GET_STACK                   \
 	movl $cos_static_stack, %esp;	    \
