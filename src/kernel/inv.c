@@ -1777,7 +1777,7 @@ void cos_trans_upcall(void *brand)
 	host_attempt_brand((struct thread *)brand);
 }
 
-COS_SYSCALL int
+COS_SYSCALL long
 cos_syscall_trans_cntl(spdid_t spdid, unsigned long op_ch, unsigned long addr, int off)
 {
 	int op, channel;
@@ -1840,7 +1840,7 @@ extern vaddr_t pgtbl_vaddr_to_kaddr(paddr_t pgtbl, unsigned long addr);
 extern int user_struct_fits_on_page(unsigned long addr, unsigned int size);
 /* assembly in ipc.S */
 extern int cos_syscall_buff_mgmt(void);
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_buff_mgmt_cont(int spd_id, void *addr, unsigned int thd_id, unsigned int len_op)
 {
 	/* 
@@ -1991,7 +1991,7 @@ cos_syscall_buff_mgmt_cont(int spd_id, void *addr, unsigned int thd_id, unsigned
  * replaced by something a little more subtle and more closely related
  * to the APIC and timer hardware, rather than the device in general.
  */
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_brand_wire(int spd_id, int thd_id, int option, int data)
 {
 	struct thread *curr_thd, *brand_thd;
@@ -2072,7 +2072,7 @@ static int verify_trust(struct spd *truster, struct spd *trustee)
  * active entities (threads).
  */
 extern void cos_syscall_upcall(void);
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_upcall_cont(int this_spd_id, int spd_id, struct pt_regs **regs)
 {
 	struct spd *dest, *curr_spd;
@@ -2513,7 +2513,7 @@ brand_next_thread(struct thread *brand, struct thread *preempted, int preempt)
 
 /************** end functions for parsing async set urgencies ************/
 
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_sched_cntl(int spd_id, int operation, int thd_id, long option)
 {
 	struct thread *thd;
@@ -2957,7 +2957,7 @@ mpd_merge(struct composite_spd *c1, struct composite_spd *c2)
  * and the meaning here is "the composite protection domain that this
  * spd is part of".
  */
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_mpd_cntl(int spd_id, int operation, 
 				     spdid_t spd1, spdid_t spd2)
 {
@@ -3142,7 +3142,7 @@ extern unsigned long __pgtbl_lookup_address(paddr_t pgtbl, unsigned long addr);
 extern void __pgtbl_or_pgd(paddr_t pgtbl, unsigned long addr, unsigned long val);
 extern void pgtbl_print_path(paddr_t pgtbl, unsigned long addr);
 
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_mmap_cntl(int spdid, long op_flags_dspd, vaddr_t daddr, unsigned long mem_id)
 {
 	short int op, flags, dspd_id;
@@ -3216,7 +3216,7 @@ cos_syscall_mmap_cntl(int spdid, long op_flags_dspd, vaddr_t daddr, unsigned lon
 	return ret;
 }
 
-COS_SYSCALL int 
+COS_SYSCALL long
 cos_syscall_pfn_cntl(int spdid, long op_dspd, unsigned int mem_id, int extent)
 {
 	struct spd *spd, *dspd;
@@ -3378,7 +3378,7 @@ cos_syscall_cap_cntl(int spdid, int option, u32_t arg1, long arg2)
 	return ret;
 }
 
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_stats(int spdid)
 {
 	cos_meas_report();
@@ -3389,7 +3389,7 @@ cos_syscall_stats(int spdid)
 
 extern int cos_syscall_idle(void);
 extern void host_idle(void);
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_idle_cont(int spdid)
 {
 	struct thread *c = thd_get_current();
@@ -3400,7 +3400,7 @@ cos_syscall_idle_cont(int spdid)
 	return COS_SCHED_RET_SUCCESS;
 }
 
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_spd_cntl(int id, int op_spdid, long arg1, long arg2)
 {
 	struct spd *spd;
@@ -3551,7 +3551,7 @@ cos_syscall_spd_cntl(int id, int op_spdid, long arg1, long arg2)
 	return ret;
 }
 
-COS_SYSCALL int 
+COS_SYSCALL long 
 cos_syscall_vas_cntl(int id, int op_spdid, long addr, long sz)
 {
 	int ret = 0;

@@ -42,7 +42,7 @@
 
 /* offsets into syscall integer */
 #define COS_CAPABILITY_OFFSET 20 /* bits 20->32 */
-#define COS_SYSCALL_OFFSET 15	 /* bits 15->20 */
+#define COS_SYSCALL_OFFSET 15	 /* bits 15->19 */
 
 //#define RET_CAP (INV_CAP_OFFSET-1)
 

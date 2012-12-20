@@ -51,7 +51,7 @@ ENTRY(sysenter_interposition_entry)
 	 * +-------------+----+--...
 	 * 32            |    COS_SYSCALL_OFFSET
 	 *               COS_CAPABILITY_OFFSET
- 	 *	
+	 *	
 	 * Where each character represents a bit.
 	 * cap_inv:	The capability to invoke
 	 * sc:	 Make a composite OS system-call
@@ -68,7 +68,6 @@ ENTRY(sysenter_interposition_entry)
 	 * cap_inv:	The capability to invoke
 	 * sc:	Make a composite OS system-call
 	 */
-
 
 	CMP $((1<<COS_CAPABILITY_OFFSET)-1), AX /* 2^20-1 shift for capability invocations */
 	ja composite_call_ipc /* component invocation */

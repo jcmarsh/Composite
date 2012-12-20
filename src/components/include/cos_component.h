@@ -59,7 +59,7 @@ extern struct cos_component_information cos_comp_info;
 
 #ifdef X86_64
 #define cos_syscall_asm \
-  __asm__ __volatile__("":::"rcx","r11"); \
+  __asm__ __volatile__("":::"rdi", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11"); \
   __asm__ __volatile__("syscall\n\t":"=a" (ret)
 #define cos_syscall_clobber \
   :"memory", "cc");		    \
@@ -104,27 +104,27 @@ static inline rtype cos_##name(type0 name0, type1 name1, type2 name2) \
 }
 
 // Only tested null and print so far.
-cos_syscall_0(1,  int, stats);
-cos_syscall_2(2,  int, print, char*, str, int, len); // Tested
-cos_syscall_3(3,  int, create_thread, int, a, int, b, int, c);
-cos_syscall_2(4,  int, __switch_thread, int, thd_id, int, flags);
-cos_syscall_1(5,  int, brand_wait, int, thdid);
-cos_syscall_3(6,  int, __brand_upcall, int, thd_id_flags, long, arg1, long, arg2);
-cos_syscall_3(7,  int, __brand_cntl, int, ops, u32_t, bid_tid, spdid_t, spdid);
-cos_syscall_1(8,  int, upcall, int, spd_id);
-cos_syscall_3(9,  int, sched_cntl, int, operation, int, thd_id, long, option);
-cos_syscall_3(10, int, mpd_cntl, int, operation, spdid_t, composite_spd, spdid_t, composite_dest);
-cos_syscall_3(11, int, __mmap_cntl, long, op_flags_dspd, vaddr_t, daddr, unsigned long, mem_id);
-cos_syscall_3(12, int, brand_wire, long, thd_id, long, option, long, data);
+cos_syscall_0(1,  long, stats);
+cos_syscall_2(2,  long, print, char*, str, int, len); // Tested
+cos_syscall_3(3,  long, create_thread, int, a, int, b, int, c);
+cos_syscall_2(4,  long, __switch_thread, int, thd_id, int, flags);
+cos_syscall_1(5,  long, brand_wait, int, thdid);
+cos_syscall_3(6,  long, __brand_upcall, int, thd_id_flags, long, arg1, long, arg2);
+cos_syscall_3(7,  long, __brand_cntl, int, ops, u32_t, bid_tid, spdid_t, spdid);
+cos_syscall_1(8,  long, upcall, int, spd_id);
+cos_syscall_3(9,  long, sched_cntl, int, operation, int, thd_id, long, option);
+cos_syscall_3(10, long, mpd_cntl, int, operation, spdid_t, composite_spd, spdid_t, composite_dest);
+cos_syscall_3(11, long, __mmap_cntl, long, op_flags_dspd, vaddr_t, daddr, unsigned long, mem_id);
+cos_syscall_3(12, long, brand_wire, long, thd_id, long, option, long, data);
 cos_syscall_3(13, long, __cap_cntl, int, option, u32_t, arg1, long, arg2);
-cos_syscall_3(14, int, __buff_mgmt, void *, addr, int, thd_id, int, len_option);
-cos_syscall_3(15, int, __thd_cntl, int, op_thdid, long, arg1, long, arg2);
-cos_syscall_0(16, int, idle);
-cos_syscall_3(17, int, __spd_cntl, int, op_spdid, long, arg1, long, arg2);
-cos_syscall_3(18, int, __vas_cntl, int, op_spdid, long, arg1, long, arg2);
-cos_syscall_3(19, int, __trans_cntl, unsigned long, op_ch, unsigned long, addr, int, off);
-cos_syscall_3(20, int, __pfn_cntl, unsigned long, op_spd, unsigned long, mem_id, int, extent);
-cos_syscall_0(31,  int, null); // Tested
+cos_syscall_3(14, long, __buff_mgmt, void *, addr, int, thd_id, int, len_option);
+cos_syscall_3(15, long, __thd_cntl, int, op_thdid, long, arg1, long, arg2);
+cos_syscall_0(16, long, idle);
+cos_syscall_3(17, long, __spd_cntl, int, op_spdid, long, arg1, long, arg2);
+cos_syscall_3(18, long, __vas_cntl, int, op_spdid, long, arg1, long, arg2);
+cos_syscall_3(19, long, __trans_cntl, unsigned long, op_ch, unsigned long, addr, int, off);
+cos_syscall_3(20, long, __pfn_cntl, unsigned long, op_spd, unsigned long, mem_id, int, extent);
+cos_syscall_0(31, long, null); // Tested
 
 #else /* x86_32 implementation */
 /* 
