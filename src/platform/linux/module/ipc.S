@@ -127,7 +127,7 @@ cos_syscall_upcall:
  * rdi: current declared spd id
  * rsi: first arg
  * rdx: second arg
- * rcx:	third arg
+ * rbx:	third arg
  * r8:	ret ip
  * r9:	ret esp
  *
@@ -138,7 +138,7 @@ composite_make_syscall:
 	pushq %r9 /* user-sp */
 	pushq %r8 /* user-ip */
 	/* arguments -- changing layout here requires changing COS_SYSCALL_E(C|D)X */
-	pushq %rcx
+	pushq %rbx
 	pushq %rdx
 	pushq %rsi
 	pushq %rdi

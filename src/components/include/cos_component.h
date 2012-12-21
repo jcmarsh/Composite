@@ -59,7 +59,7 @@ extern struct cos_component_information cos_comp_info;
 
 #ifdef X86_64
 #define cos_syscall_asm \
-  __asm__ __volatile__("":::"rdi", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11"); \
+  __asm__ __volatile__("":::"rdi", "rsi", "rdx", "rbx", "rcx", "r8", "r9", "r10", "r11"); \
   __asm__ __volatile__("syscall\n\t":"=a" (ret)
 #define cos_syscall_clobber \
   :"memory", "cc");		    \
@@ -93,13 +93,13 @@ static inline rtype cos_##name(type0 name0, type1 name1) \
   cos_syscall_clobber							\
 }
 
-// Not yet Tested
+// Not yet Tested // Used to be a D S d c -jcm
 #define cos_syscall_3(num, rtype, name, type0, name0, type1, name1, type2, name2) \
 static inline rtype cos_##name(type0 name0, type1 name1, type2 name2) \
 {                                                                     \
   rtype ret;                                                          \
   cos_syscall_asm                                                     \
-  : "a" (num<<COS_SYSCALL_OFFSET), "D" (cos_comp_info.cos_this_spd_id), "S" (name0), "d" (name1), "c" (name2)  \
+  : "a" (num<<COS_SYSCALL_OFFSET), "D" (cos_comp_info.cos_this_spd_id), "S" (name0), "d" (name1), "b" (name2)  \
   cos_syscall_clobber                                                 \
 }
 
@@ -224,38 +224,38 @@ static inline int cos_mmap_cntl(short int op, short int flags, short int dest_sp
  * Physical frame number manipulations.  Which component, and what
  * extent of physical frames are we manipulating. 
  */
-static inline int 
+static inline long
 cos_pfn_cntl(short int op, int dest_spd, unsigned int mem_id, int extent) {
 	/* encode into 3 arguments */
 	return cos___pfn_cntl(((op<<16) | (dest_spd)), mem_id, extent);
 }
 
-static inline int cos_brand_upcall(short int thd_id, short int flags, long arg1, long arg2)
+static inline long cos_brand_upcall(short int thd_id, short int flags, long arg1, long arg2)
 {
 	return cos___brand_upcall(((thd_id << 16) | (flags & 0xFFFF)), arg1, arg2);
 }
 
-static inline int cos_buff_mgmt(unsigned short int op, void *addr, unsigned short int len, short int thd_id)
+static inline long cos_buff_mgmt(unsigned short int op, void *addr, unsigned short int len, short int thd_id)
 {
 	return cos___buff_mgmt(addr, thd_id, ((len << 16) | (op & 0xFFFF)));
 }
 
-static inline int cos_brand_cntl(int ops, unsigned short int bid, unsigned short int tid, spdid_t spdid)
+static inline long cos_brand_cntl(int ops, unsigned short int bid, unsigned short int tid, spdid_t spdid)
 {
 	return cos___brand_cntl(ops, bid << 16 | tid, spdid);
 }
 
-static inline int cos_thd_cntl(short int op, short int thd_id, long arg1, long arg2)
+static inline long cos_thd_cntl(short int op, short int thd_id, long arg1, long arg2)
 {
 	return cos___thd_cntl(((op << 16) | (thd_id & 0xFFFF)), arg1, arg2);
 }
 
-static inline int cos_spd_cntl(short int op, short int spd_id, long arg1, long arg2)
+static inline long cos_spd_cntl(short int op, short int spd_id, long arg1, long arg2)
 {
 	return cos___spd_cntl(((op << 16) | (spd_id & 0xFFFF)), arg1, arg2);
 }
 
-static inline int cos_vas_cntl(short int op, short int spd_id, long addr, long sz)
+static inline long cos_vas_cntl(short int op, short int spd_id, long addr, long sz)
 {
 	return cos___vas_cntl(((op << 16) | (spd_id & 0xFFFF)), addr, sz);
 }
@@ -270,7 +270,7 @@ static inline long cos_cap_cntl(short int op, spdid_t cspd, u16_t capid, long ar
 	return cos___cap_cntl(op, (cspd << 16) | (capid & 0xFFFF), arg);
 }
 
-static inline int cos_trans_cntl(int op, int channel, unsigned long addr, int off)
+static inline long cos_trans_cntl(int op, int channel, unsigned long addr, int off)
 {
 	return cos___trans_cntl(((op << 16) | (channel & 0xFFFF)), addr, off);
 }
