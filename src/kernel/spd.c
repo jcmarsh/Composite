@@ -543,7 +543,6 @@ int spd_add_location(struct spd *spd, long base, long size)
 	int ret = 0;
 	int i;
 
-	printd("HAHAHAHAHAHA. I am the law!!!!!!\n");
 	if (!spd->spd_info.pg_tbl) goto err;
 	printd("SPACE CATS: 1\n");
 	/* the beginning address must be on a 4M boundary,

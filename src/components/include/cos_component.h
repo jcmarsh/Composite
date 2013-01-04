@@ -60,7 +60,9 @@ extern struct cos_component_information cos_comp_info;
 #ifdef X86_64
 #define cos_syscall_asm \
   __asm__ __volatile__("":::"rdi", "rsi", "rdx", "rbx", "rcx", "r8", "r9", "r10", "r11"); \
-  __asm__ __volatile__("syscall\n\t":"=a" (ret)
+  __asm__ __volatile__( \
+          "syscall" \
+	  : "=a" (ret) 
 #define cos_syscall_clobber \
   :"memory", "cc");		    \
   return ret;
@@ -84,7 +86,7 @@ static inline rtype cos_##name(type0 name0)          \
     cos_syscall_clobber							\
 }
 
-#define cos_syscall_2(num, rtype, name, type0, name0, type1, name1)\
+#define cos_syscall_2(num, rtype, name, type0, name0, type1, name1) \
 static inline rtype cos_##name(type0 name0, type1 name1) \
 {                                                    \
   rtype ret;					     \
@@ -124,6 +126,9 @@ cos_syscall_3(17, long, __spd_cntl, int, op_spdid, long, arg1, long, arg2);
 cos_syscall_3(18, long, __vas_cntl, int, op_spdid, long, arg1, long, arg2);
 cos_syscall_3(19, long, __trans_cntl, unsigned long, op_ch, unsigned long, addr, int, off);
 cos_syscall_3(20, long, __pfn_cntl, unsigned long, op_spd, unsigned long, mem_id, int, extent);
+cos_syscall_1(28, long, test1_syscall, unsigned long, a);
+cos_syscall_2(29, long, test2_syscall, unsigned long, a, unsigned long, b);
+cos_syscall_3(30, long, test3_syscall, unsigned long, a, unsigned long, b, unsigned long, c);
 cos_syscall_0(31, long, null); // Tested
 
 #else /* x86_32 implementation */

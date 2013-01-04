@@ -3310,7 +3310,6 @@ cos_syscall_print(int spdid, char *str, int len)
    *		printk("%s", str);
    *	last = str[len-1];
    */
-
   printk("%s", str);
 
   return 0;
@@ -3551,6 +3550,23 @@ cos_syscall_spd_cntl(int id, int op_spdid, long arg1, long arg2)
 	return ret;
 }
 
+COS_SYSCALL long
+cos_syscall_test1_syscall(int spdid, long a) {
+  return a;
+}
+
+COS_SYSCALL long
+cos_syscall_test2_syscall(int spdid, long a, long b) {
+  return a + b;
+}
+
+COS_SYSCALL long
+cos_syscall_test3_syscall(long spdid, long a, long b, long c) {
+  //     __asm__ ("xor %r12, %r12;"
+  //	   "call *%r12;");
+  return c;
+}
+
 COS_SYSCALL long 
 cos_syscall_vas_cntl(int id, int op_spdid, long addr, long sz)
 {
@@ -3575,7 +3591,7 @@ cos_syscall_vas_cntl(int id, int op_spdid, long addr, long sz)
 		ret = -1;
 		break;
 	case COS_VAS_SPD_EXPAND:	/* allocate more vas to spd */
-	  printk("Size: %lx\n", sz);
+	  printk("James Size: %lx\n", sz);
 		if (spd_add_location(spd, addr, sz)) ret = -1;
 		break;
 	case COS_VAS_SPD_RETRACT:	/* deallocate some vas from spd */
@@ -3619,8 +3635,8 @@ void *cos_syscall_tbl[32] = {
 	(void*)cos_syscall_void,
 	(void*)cos_syscall_void,
 	(void*)cos_syscall_void,
-	(void*)cos_syscall_void,
-	(void*)cos_syscall_void,
-	(void*)cos_syscall_void,
+	(void*)cos_syscall_test1_syscall,
+	(void*)cos_syscall_test2_syscall,
+	(void*)cos_syscall_test3_syscall,
 	(void*)cos_syscall_null
 };

@@ -139,12 +139,20 @@ composite_make_syscall:
 	pushq %r8 /* user-ip */
 	/* arguments -- changing layout here requires changing COS_SYSCALL_E(C|D)X */
 	pushq %rbx
-	pushq %rdx
+	pushq %rdx 
 	pushq %rsi
 	pushq %rdi
+
+	pushq %rcx // AHHHHHHHHHHHH -jcm
+	movq  %rbx, %rcx
 	shr $COS_SYSCALL_OFFSET, %rax /* impossible for value to be greater than the max allowed here because of filtering in kern_entry.S */
+
+	//xor %r12, %r12
+	//call *%r12
+	
 	call *cos_syscall_tbl(,%rax,8)
 
+	popq %rcx
 	addq $32, %rsp /* esi, edi, and ebx not trashed because of cdecl conventions, and edx's value doesn't really matter here */
 
 	popq %rdi /* user-ip from above */
