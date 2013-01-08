@@ -548,6 +548,7 @@ int spd_add_location(struct spd *spd, long base, long size)
 	/* the beginning address must be on a 4M boundary,
 	 * and 4M in size (for now) */ // Need to accomodate this! -jcm
 	printd("Service Size: %lx\t Size: %lx\n", SERVICE_SIZE, size);
+	printd("base: %lx\t & Service Size - 1: %lx\n", base, base & (SERVICE_SIZE - 1));
 	if (((base & (SERVICE_SIZE-1)) != 0)/* || size != SERVICE_SIZE */) goto err;
 	printd("SPACE CATS: 2\n");
 	for (i = 0 ; i < MAX_SPD_VAS_LOCATIONS ; i++) {

@@ -258,7 +258,7 @@ struct cos_stack_freelists {
 
 struct cos_component_information {
 	struct cos_stack_freelists cos_stacks;
-        long cos_this_spd_id; // Why is "long" used? Why not a type define above? Like 64_t?
+        long cos_this_spd_id; // Why is "long" used? Why not a type define above? Like 64_t? -jcm
 	u32_t cos_tmem_relinquish[COMP_INFO_TMEM];
 	u32_t cos_tmem_available[COMP_INFO_TMEM];
 	vaddr_t cos_heap_ptr, cos_heap_limit;
